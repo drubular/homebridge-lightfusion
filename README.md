@@ -1,6 +1,6 @@
 # LightFusion
 
-LightFusion is an open-source Homebridge plugin for synchronized and calibrated control of mixed-brand HomeKit lighting.
+LightFusion is an open-source lighting synchronization and calibration platform. Its first interface is a Homebridge plugin that provides unified HomeKit control of mixed-brand lights.
 
 The project is designed to make lights from different manufacturers behave like one unified HomeKit lighting group, while correcting differences in color, brightness, and white temperature.
 
