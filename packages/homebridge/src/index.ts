@@ -1,0 +1,3 @@
+import { LIGHTFUSION_CORE_VERSION } from '@lightfusion/core';
+
+export const LIGHTFUSION_HOMEBRIDGE_VERSION = LIGHTFUSION_CORE_VERSION;

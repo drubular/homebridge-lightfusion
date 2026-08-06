@@ -1,0 +1,20 @@
+{
+  "name": "homebridge-lightfusion",
+  "version": "0.0.0",
+  "private": true,
+  "description": "LightFusion monorepo",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "clean": "npm run clean --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}

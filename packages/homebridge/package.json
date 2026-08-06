@@ -1,0 +1,30 @@
+{
+  "name": "homebridge-lightfusion",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Homebridge interface for the LightFusion lighting platform",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "keywords": [
+    "homebridge-plugin",
+    "homebridge",
+    "homekit",
+    "lighting"
+  ],
+  "engines": {
+    "node": ">=22",
+    "homebridge": ">=2.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@lightfusion/core": "0.0.0"
+  },
+  "devDependencies": {
+    "homebridge": "^2.0.0"
+  }
+}
