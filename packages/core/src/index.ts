@@ -13,4 +13,6 @@ export {
   type LightProvider,
 } from './light-provider.js';
 
+export { ProviderRegistry } from './provider-registry.js';
+
 export const LIGHTFUSION_CORE_VERSION = '0.0.0';
