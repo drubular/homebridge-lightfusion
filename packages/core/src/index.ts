@@ -26,6 +26,11 @@ export {
   type HueProviderConfig,
 } from './providers/hue-provider.js';
 
+export {
+  GoveeProvider,
+  type GoveeProviderConfig,
+} from './providers/govee-provider.js';
+
 export { ProviderRegistry } from './provider-registry.js';
 export { normalizeLightState } from './state-normalization.js';
 
