@@ -8,4 +8,9 @@ export {
   type LightGroup,
 } from './light-group.js';
 
+export {
+  type LightDescriptor,
+  type LightProvider,
+} from './light-provider.js';
+
 export const LIGHTFUSION_CORE_VERSION = '0.0.0';
