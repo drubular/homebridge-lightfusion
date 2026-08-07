@@ -1,3 +1,7 @@
+import {
+  DEFAULT_LIGHT_STATE,
+  type LightState,
+} from '@lightfusion/core';
 import type {
   API,
   CharacteristicValue,
@@ -5,24 +9,12 @@ import type {
   Service,
 } from 'homebridge';
 
-export interface VirtualLightState {
-  on: boolean;
-  brightness: number;
-  hue: number;
-  saturation: number;
-  colorTemperature: number;
-}
-
 export class VirtualLight {
   private readonly service: Service;
 
-  private readonly state: VirtualLightState = {
-    on: false,
-    brightness: 100,
-    hue: 0,
-    saturation: 0,
-    colorTemperature: 370,
-  };
+private readonly state: LightState = {
+  ...DEFAULT_LIGHT_STATE,
+};
 
   public constructor(
     private readonly api: API,
