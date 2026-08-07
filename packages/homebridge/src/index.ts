@@ -1,3 +1,12 @@
-import { LIGHTFUSION_CORE_VERSION } from '@lightfusion/core';
+import type { API } from 'homebridge';
 
-export const LIGHTFUSION_HOMEBRIDGE_VERSION = LIGHTFUSION_CORE_VERSION;
+import { LightFusionPlatform } from './platform.js';
+import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
+
+export default (api: API): void => {
+  api.registerPlatform(
+    PLUGIN_NAME,
+    PLATFORM_NAME,
+    LightFusionPlatform,
+  );
+};

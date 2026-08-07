@@ -1,0 +1,16 @@
+{
+  "pluginAlias": "LightFusion",
+  "pluginType": "platform",
+  "singular": true,
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "LightFusion",
+        "required": true
+      }
+    }
+  }
+}
