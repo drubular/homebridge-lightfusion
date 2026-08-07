@@ -29,3 +29,10 @@ export function createLightGroup(
     members: members.map((member) => ({ ...member })),
   };
 }
+
+export function updateLightGroupState(
+  group: LightGroup,
+  state: Partial<LightState>,
+): void {
+  Object.assign(group.state, state);
+}

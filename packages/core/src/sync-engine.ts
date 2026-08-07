@@ -1,6 +1,7 @@
-import type {
-  LightGroup,
-  LightReference,
+import {
+  updateLightGroupState,
+  type LightGroup,
+  type LightReference,
 } from './light-group.js';
 import type { LightState } from './light-state.js';
 import type { ProviderRegistry } from './provider-registry.js';
@@ -24,7 +25,7 @@ export class SyncEngine {
     group: LightGroup,
     state: Partial<LightState>,
   ): Promise<SyncResult> {
-    Object.assign(group.state, state);
+    updateLightGroupState(group, state);
     const results = await Promise.all(
       group.members.map(async (light) => {
         const provider = this.providers.getProvider(light.providerId);
