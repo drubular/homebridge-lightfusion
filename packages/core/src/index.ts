@@ -22,5 +22,6 @@ export {
 } from './sync-engine.js';
 
 export { ProviderRegistry } from './provider-registry.js';
+export { normalizeLightState } from './state-normalization.js';
 
 export const LIGHTFUSION_CORE_VERSION = '0.0.0';

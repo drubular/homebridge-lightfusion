@@ -264,3 +264,46 @@ test('updates the group target state when synchronizing', async () => {
   assert.equal(group.state.on, false);
   assert.equal(group.state.saturation, 0);
 });
+
+test('normalizes state before sending it to providers', async () => {
+  const registry = new ProviderRegistry();
+
+  const hue = createProvider('hue');
+
+  registry.register(hue);
+
+  const group = createLightGroup(
+    'living-room',
+    'Living Room',
+    [
+      {
+        providerId: 'hue',
+        lightId: 'display-left',
+      },
+    ],
+  );
+
+  const engine = new SyncEngine(registry);
+
+  await engine.syncGroup(group, {
+    brightness: 150,
+    hue: -30,
+    saturation: 125,
+    colorTemperature: 600,
+  });
+
+  assert.deepEqual(hue.calls[0], {
+    lightId: 'display-left',
+    state: {
+      brightness: 100,
+      hue: 330,
+      saturation: 100,
+      colorTemperature: 500,
+    },
+  });
+
+  assert.equal(group.state.brightness, 100);
+  assert.equal(group.state.hue, 330);
+  assert.equal(group.state.saturation, 100);
+  assert.equal(group.state.colorTemperature, 500);
+});

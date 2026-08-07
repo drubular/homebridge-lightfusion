@@ -5,6 +5,7 @@ import {
 } from './light-group.js';
 import type { LightState } from './light-state.js';
 import type { ProviderRegistry } from './provider-registry.js';
+import { normalizeLightState } from './state-normalization.js';
 
 export interface SyncFailure {
   light: LightReference;
@@ -21,11 +22,13 @@ export class SyncEngine {
     private readonly providers: ProviderRegistry,
   ) {}
 
-  public async syncGroup(
-    group: LightGroup,
-    state: Partial<LightState>,
-  ): Promise<SyncResult> {
-    updateLightGroupState(group, state);
+public async syncGroup(
+  group: LightGroup,
+  state: Partial<LightState>,
+): Promise<SyncResult> {
+  const normalizedState = normalizeLightState(state);
+
+  updateLightGroupState(group, normalizedState);
     const results = await Promise.all(
       group.members.map(async (light) => {
         const provider = this.providers.getProvider(light.providerId);
@@ -40,7 +43,10 @@ export class SyncEngine {
         }
 
         try {
-          await provider.setState(light.lightId, state);
+          await provider.setState(
+            light.lightId,
+            normalizedState,
+          );
 
           return {
             light,
