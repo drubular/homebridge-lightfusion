@@ -71,11 +71,10 @@ export class GoveeProvider implements LightProvider {
   ): Promise<void> {
     this.assertLightId(lightId);
 
-
     if (state.on === true) {
-        await this.sendCommand('turn', {
-            value: 1,
-        });
+      await this.sendCommand('turn', {
+        value: 1,
+      });
     }
 
     if (state.brightness !== undefined) {
@@ -85,8 +84,11 @@ export class GoveeProvider implements LightProvider {
     }
 
     if (
-      state.hue !== undefined ||
-      state.saturation !== undefined
+      state.colorTemperature === undefined &&
+      (
+        state.hue !== undefined ||
+        state.saturation !== undefined
+      )
     ) {
       const rgb = this.hsvToRgb(
         state.hue ?? 0,
@@ -110,11 +112,14 @@ export class GoveeProvider implements LightProvider {
           this.miredToKelvin(state.colorTemperature),
       });
     }
+
     if (state.on === false) {
-  await this.sendCommand('turn', {
-    value: 0,
-  });
-}
+      await this.wait(150);
+
+      await this.sendCommand('turn', {
+        value: 0,
+      });
+    }
   }
 
   public async isAvailable(
@@ -144,7 +149,11 @@ export class GoveeProvider implements LightProvider {
     cmd: string,
     data: Record<string, unknown>,
   ): Promise<void> {
-    await this.sendRequest(cmd, data, false);
+    await this.sendRequest(
+      cmd,
+      data,
+      false,
+    );
   }
 
   private async sendRequest(
@@ -227,7 +236,11 @@ export class GoveeProvider implements LightProvider {
       };
 
       if (waitForResponse) {
-        socket.bind(4002, '0.0.0.0', send);
+        socket.bind(
+          4002,
+          '0.0.0.0',
+          send,
+        );
       } else {
         send();
       }
@@ -242,8 +255,18 @@ export class GoveeProvider implements LightProvider {
     }
   }
 
+  private async wait(
+    milliseconds: number,
+  ): Promise<void> {
+    await new Promise((resolve) => {
+      setTimeout(resolve, milliseconds);
+    });
+  }
+
   private miredToKelvin(mired: number): number {
-    return Math.round(1_000_000 / mired);
+    return Math.round(
+      1_000_000 / mired,
+    );
   }
 
   private kelvinToMired(
@@ -253,21 +276,34 @@ export class GoveeProvider implements LightProvider {
       return undefined;
     }
 
-    return Math.round(1_000_000 / kelvin);
+    return Math.round(
+      1_000_000 / kelvin,
+    );
   }
 
   private hsvToRgb(
     hue: number,
     saturation: number,
-  ): { r: number; g: number; b: number } {
+  ): {
+    r: number;
+    g: number;
+    b: number;
+  } {
     const h = ((hue % 360) + 360) % 360;
     const s = saturation / 100;
     const value = 1;
 
     const chroma = value * s;
+
     const x =
       chroma *
-      (1 - Math.abs(((h / 60) % 2) - 1));
+      (
+        1 -
+        Math.abs(
+          ((h / 60) % 2) - 1,
+        )
+      );
+
     const match = value - chroma;
 
     let r = 0;
@@ -295,9 +331,15 @@ export class GoveeProvider implements LightProvider {
     }
 
     return {
-      r: Math.round((r + match) * 255),
-      g: Math.round((g + match) * 255),
-      b: Math.round((b + match) * 255),
+      r: Math.round(
+        (r + match) * 255,
+      ),
+      g: Math.round(
+        (g + match) * 255,
+      ),
+      b: Math.round(
+        (b + match) * 255,
+      ),
     };
   }
 }
