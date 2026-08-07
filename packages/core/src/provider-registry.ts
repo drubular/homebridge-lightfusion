@@ -30,9 +30,4 @@ export class ProviderRegistry {
     return results.flat();
   }
 
-  public getProviderForLight(
-    providerId: string,
-  ): LightProvider | undefined {
-    return this.getProvider(providerId);
-  }
 }
