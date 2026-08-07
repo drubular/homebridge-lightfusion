@@ -6,6 +6,7 @@ export {
 export {
   createLightGroup,
   type LightGroup,
+  type LightReference,
 } from './light-group.js';
 
 export {

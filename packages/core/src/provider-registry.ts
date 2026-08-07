@@ -30,17 +30,9 @@ export class ProviderRegistry {
     return results.flat();
   }
 
-  public async findProviderForLight(
-    lightId: string,
-  ): Promise<LightProvider | undefined> {
-    for (const provider of this.getProviders()) {
-      const lights = await provider.getLights();
-
-      if (lights.some((light) => light.id === lightId)) {
-        return provider;
-      }
-    }
-
-    return undefined;
+  public getProviderForLight(
+    providerId: string,
+  ): LightProvider | undefined {
+    return this.getProvider(providerId);
   }
 }

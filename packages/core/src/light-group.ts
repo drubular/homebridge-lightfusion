@@ -3,17 +3,22 @@ import {
   type LightState,
 } from './light-state.js';
 
+export interface LightReference {
+  providerId: string;
+  lightId: string;
+}
+
 export interface LightGroup {
   id: string;
   name: string;
   state: LightState;
-  members: string[];
+  members: LightReference[];
 }
 
 export function createLightGroup(
   id: string,
   name: string,
-  members: string[] = [],
+  members: LightReference[] = [],
 ): LightGroup {
   return {
     id,
@@ -21,6 +26,6 @@ export function createLightGroup(
     state: {
       ...DEFAULT_LIGHT_STATE,
     },
-    members: [...members],
+    members: members.map((member) => ({ ...member })),
   };
 }
