@@ -232,3 +232,35 @@ test('sends provider updates concurrently', async () => {
     `Expected concurrent updates, but took ${duration}ms`,
   );
 });
+
+test('updates the group target state when synchronizing', async () => {
+  const registry = new ProviderRegistry();
+
+  const hue = createProvider('hue');
+
+  registry.register(hue);
+
+  const group = createLightGroup(
+    'living-room',
+    'Living Room',
+    [
+      {
+        providerId: 'hue',
+        lightId: 'display-left',
+      },
+    ],
+  );
+
+  const engine = new SyncEngine(registry);
+
+  await engine.syncGroup(group, {
+    brightness: 40,
+    hue: 200,
+  });
+
+  assert.equal(group.state.brightness, 40);
+  assert.equal(group.state.hue, 200);
+
+  assert.equal(group.state.on, false);
+  assert.equal(group.state.saturation, 0);
+});

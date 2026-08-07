@@ -24,6 +24,7 @@ export class SyncEngine {
     group: LightGroup,
     state: Partial<LightState>,
   ): Promise<SyncResult> {
+    Object.assign(group.state, state);
     const results = await Promise.all(
       group.members.map(async (light) => {
         const provider = this.providers.getProvider(light.providerId);
