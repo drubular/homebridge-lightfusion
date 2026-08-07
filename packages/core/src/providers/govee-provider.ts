@@ -71,10 +71,11 @@ export class GoveeProvider implements LightProvider {
   ): Promise<void> {
     this.assertLightId(lightId);
 
-    if (state.on !== undefined) {
-      await this.sendCommand('turn', {
-        value: state.on ? 1 : 0,
-      });
+
+    if (state.on === true) {
+        await this.sendCommand('turn', {
+            value: 1,
+        });
     }
 
     if (state.brightness !== undefined) {
@@ -109,6 +110,11 @@ export class GoveeProvider implements LightProvider {
           this.miredToKelvin(state.colorTemperature),
       });
     }
+    if (state.on === false) {
+  await this.sendCommand('turn', {
+    value: 0,
+  });
+}
   }
 
   public async isAvailable(
