@@ -21,6 +21,11 @@ export {
   type SyncResult,
 } from './sync-engine.js';
 
+export {
+  HueProvider,
+  type HueProviderConfig,
+} from './providers/hue-provider.js';
+
 export { ProviderRegistry } from './provider-registry.js';
 export { normalizeLightState } from './state-normalization.js';
 
