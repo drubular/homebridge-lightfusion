@@ -31,6 +31,11 @@ export {
   type GoveeProviderConfig,
 } from './providers/govee-provider.js';
 
+export {
+  applyCalibration,
+  type CalibrationProfile,
+} from './calibration.js';
+
 export { ProviderRegistry } from './provider-registry.js';
 export { normalizeLightState } from './state-normalization.js';
 

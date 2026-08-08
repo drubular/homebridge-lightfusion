@@ -6,6 +6,7 @@ import {
 import type { LightState } from './light-state.js';
 import type { ProviderRegistry } from './provider-registry.js';
 import { normalizeLightState } from './state-normalization.js';
+import { applyCalibration, type CalibrationProfile, } from './calibration.js';
 
 export interface SyncFailure {
   light: LightReference;
@@ -20,15 +21,18 @@ export interface SyncResult {
 export class SyncEngine {
   public constructor(
     private readonly providers: ProviderRegistry,
-  ) {}
+    private readonly getCalibrationProfile?: (
+      light: LightReference,
+    ) => CalibrationProfile | undefined,
+  ) { }
 
-public async syncGroup(
-  group: LightGroup,
-  state: Partial<LightState>,
-): Promise<SyncResult> {
-  const normalizedState = normalizeLightState(state);
+  public async syncGroup(
+    group: LightGroup,
+    state: Partial<LightState>,
+  ): Promise<SyncResult> {
+    const normalizedState = normalizeLightState(state);
 
-  updateLightGroupState(group, normalizedState);
+    updateLightGroupState(group, normalizedState);
     const results = await Promise.all(
       group.members.map(async (light) => {
         const provider = this.providers.getProvider(light.providerId);
@@ -43,9 +47,15 @@ public async syncGroup(
         }
 
         try {
+          const profile = this.getCalibrationProfile?.(light);
+
+          const stateForLight = profile
+            ? applyCalibration(normalizedState, profile)
+            : normalizedState;
+
           await provider.setState(
             light.lightId,
-            normalizedState,
+            stateForLight,
           );
 
           return {
