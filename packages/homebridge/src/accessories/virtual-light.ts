@@ -17,6 +17,9 @@ export type VirtualLightStateChangeHandler = (
 export class VirtualLight {
   private readonly service: Service;
 
+  private pendingColorState: Partial<LightState> = {};
+private colorUpdateTimer: NodeJS.Timeout | undefined;
+
   public constructor(
     private readonly api: API,
     private readonly accessory: PlatformAccessory,
@@ -73,7 +76,7 @@ export class VirtualLight {
       .getCharacteristic(characteristic.Hue)
       .onGet(() => this.group.state.hue)
       .onSet(async (value: CharacteristicValue) => {
-        await this.onStateChange({
+        this.queueColorUpdate({
           hue: Number(value),
         });
       });
@@ -82,7 +85,7 @@ export class VirtualLight {
       .getCharacteristic(characteristic.Saturation)
       .onGet(() => this.group.state.saturation)
       .onSet(async (value: CharacteristicValue) => {
-        await this.onStateChange({
+        this.queueColorUpdate({
           saturation: Number(value),
         });
       });
@@ -91,9 +94,49 @@ export class VirtualLight {
       .getCharacteristic(characteristic.ColorTemperature)
       .onGet(() => this.group.state.colorTemperature)
       .onSet(async (value: CharacteristicValue) => {
+        this.cancelPendingColorUpdate();
+
         await this.onStateChange({
           colorTemperature: Number(value),
         });
       });
+  }
+
+  private queueColorUpdate(
+    state: Partial<LightState>,
+  ): void {
+    this.pendingColorState = {
+      ...this.pendingColorState,
+      ...state,
+    };
+
+    if (this.colorUpdateTimer) {
+      clearTimeout(this.colorUpdateTimer);
+    }
+
+    this.colorUpdateTimer = setTimeout(() => {
+      const stateToSend = {
+        hue:
+          this.pendingColorState.hue ??
+          this.group.state.hue,
+        saturation:
+          this.pendingColorState.saturation ??
+          this.group.state.saturation,
+      };
+
+      this.pendingColorState = {};
+      this.colorUpdateTimer = undefined;
+
+      void this.onStateChange(stateToSend);
+    }, 100);
+  }
+
+  private cancelPendingColorUpdate(): void {
+    if (this.colorUpdateTimer) {
+      clearTimeout(this.colorUpdateTimer);
+      this.colorUpdateTimer = undefined;
+    }
+
+    this.pendingColorState = {};
   }
 }
