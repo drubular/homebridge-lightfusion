@@ -41,6 +41,26 @@
         "type": "string",
         "default": "livingroom-big-light",
         "required": true
+      },
+      "goveeHueOffset": {
+        "title": "Govee Hue Offset",
+        "type": "number",
+        "default": 0
+      },
+      "goveeSaturationScale": {
+        "title": "Govee Saturation Scale",
+        "type": "number",
+        "default": 1
+      },
+      "goveeBrightnessScale": {
+        "title": "Govee Brightness Scale",
+        "type": "number",
+        "default": 1
+      },
+      "goveeColorTemperatureOffset": {
+        "title": "Govee Color Temperature Offset",
+        "type": "number",
+        "default": 0
       }
     }
   }

@@ -29,6 +29,10 @@ interface LightFusionPlatformConfig extends PlatformConfig {
   hueLightIds?: string[];
   goveeIp?: string;
   goveeLightId?: string;
+  goveeHueOffset?: number;
+  goveeSaturationScale?: number;
+  goveeBrightnessScale?: number;
+  goveeColorTemperatureOffset?: number;
 }
 
 export class LightFusionPlatform implements DynamicPlatformPlugin {
@@ -36,8 +40,22 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
   private readonly cachedAccessories: PlatformAccessory[] = [];
 
   private readonly registry = new ProviderRegistry();
-  private readonly syncEngine = new SyncEngine(this.registry);
+  private readonly syncEngine = new SyncEngine(
+    this.registry,
+    (light) => {
+      if (light.providerId !== 'govee') {
+        return undefined;
+      }
 
+      return {
+        hueOffset: this.config.goveeHueOffset ?? 0,
+        saturationScale: this.config.goveeSaturationScale ?? 1,
+        brightnessScale: this.config.goveeBrightnessScale ?? 1,
+        colorTemperatureOffset:
+          this.config.goveeColorTemperatureOffset ?? 0,
+      };
+    },
+  );
   private readonly group: LightGroup;
 
   public constructor(
