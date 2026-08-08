@@ -10,6 +10,37 @@
         "type": "string",
         "default": "LightFusion",
         "required": true
+      },
+      "hueBridgeIp": {
+        "title": "Hue Bridge IP",
+        "type": "string",
+        "placeholder": "192.168.68.80",
+        "required": true
+      },
+      "hueApplicationKey": {
+        "title": "Hue Application Key",
+        "type": "string",
+        "required": true
+      },
+      "hueLightIds": {
+        "title": "Hue Light IDs",
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "required": true
+      },
+      "goveeIp": {
+        "title": "Govee H60A1 IP",
+        "type": "string",
+        "placeholder": "192.168.68.xxx",
+        "required": true
+      },
+      "goveeLightId": {
+        "title": "Govee Light ID",
+        "type": "string",
+        "default": "livingroom-big-light",
+        "required": true
       }
     }
   }

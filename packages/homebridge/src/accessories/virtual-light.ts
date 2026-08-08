@@ -1,7 +1,8 @@
-import {
-  DEFAULT_LIGHT_STATE,
-  type LightState,
+import type {
+  LightGroup,
+  LightState,
 } from '@lightfusion/core';
+
 import type {
   API,
   CharacteristicValue,
@@ -9,16 +10,18 @@ import type {
   Service,
 } from 'homebridge';
 
+export type VirtualLightStateChangeHandler = (
+  state: Partial<LightState>,
+) => Promise<void>;
+
 export class VirtualLight {
   private readonly service: Service;
-
-private readonly state: LightState = {
-  ...DEFAULT_LIGHT_STATE,
-};
 
   public constructor(
     private readonly api: API,
     private readonly accessory: PlatformAccessory,
+    private readonly group: LightGroup,
+    private readonly onStateChange: VirtualLightStateChangeHandler,
   ) {
     this.service =
       this.accessory.getService(this.api.hap.Service.Lightbulb) ??
@@ -50,37 +53,47 @@ private readonly state: LightState = {
 
     this.service
       .getCharacteristic(characteristic.On)
-      .onGet(() => this.state.on)
-      .onSet((value: CharacteristicValue) => {
-        this.state.on = Boolean(value);
+      .onGet(() => this.group.state.on)
+      .onSet(async (value: CharacteristicValue) => {
+        await this.onStateChange({
+          on: Boolean(value),
+        });
       });
 
     this.service
       .getCharacteristic(characteristic.Brightness)
-      .onGet(() => this.state.brightness)
-      .onSet((value: CharacteristicValue) => {
-        this.state.brightness = Number(value);
+      .onGet(() => this.group.state.brightness)
+      .onSet(async (value: CharacteristicValue) => {
+        await this.onStateChange({
+          brightness: Number(value),
+        });
       });
 
     this.service
       .getCharacteristic(characteristic.Hue)
-      .onGet(() => this.state.hue)
-      .onSet((value: CharacteristicValue) => {
-        this.state.hue = Number(value);
+      .onGet(() => this.group.state.hue)
+      .onSet(async (value: CharacteristicValue) => {
+        await this.onStateChange({
+          hue: Number(value),
+        });
       });
 
     this.service
       .getCharacteristic(characteristic.Saturation)
-      .onGet(() => this.state.saturation)
-      .onSet((value: CharacteristicValue) => {
-        this.state.saturation = Number(value);
+      .onGet(() => this.group.state.saturation)
+      .onSet(async (value: CharacteristicValue) => {
+        await this.onStateChange({
+          saturation: Number(value),
+        });
       });
 
     this.service
       .getCharacteristic(characteristic.ColorTemperature)
-      .onGet(() => this.state.colorTemperature)
-      .onSet((value: CharacteristicValue) => {
-        this.state.colorTemperature = Number(value);
+      .onGet(() => this.group.state.colorTemperature)
+      .onSet(async (value: CharacteristicValue) => {
+        await this.onStateChange({
+          colorTemperature: Number(value),
+        });
       });
   }
 }
