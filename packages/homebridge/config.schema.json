@@ -2,6 +2,7 @@
   "pluginAlias": "LightFusion",
   "pluginType": "platform",
   "singular": true,
+  "customUi": true,
   "schema": {
     "type": "object",
     "properties": {

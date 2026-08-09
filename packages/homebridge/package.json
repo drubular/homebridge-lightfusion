@@ -19,7 +19,8 @@
   "types": "./dist/index.d.ts",
   "files": [
     "dist",
-    "config.schema.json"
+    "config.schema.json",
+    "homebridge-ui"
   ],
   "keywords": [
     "homebridge-plugin",
@@ -43,6 +44,7 @@
     "@lightfusion/core": "0.0.0"
   },
   "devDependencies": {
+    "@homebridge/plugin-ui-utils": "^2.2.5",
     "homebridge": "^2.3.0"
   }
 }
