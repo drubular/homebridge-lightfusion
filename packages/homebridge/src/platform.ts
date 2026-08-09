@@ -48,7 +48,16 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
       }
 
       return {
-        hueOffset: this.config.goveeHueOffset ?? 0,
+        hueMap: [
+          { input: 0, output: 0 },
+          { input: 60, output: 60 },
+          { input: 120, output: 120 },
+          { input: 135, output: 125 },
+          { input: 150, output: 135 },
+          { input: 180, output: 160 },
+          { input: 240, output: 235 },
+          { input: 300, output: 300 },
+        ],
         saturationScale: this.config.goveeSaturationScale ?? 1,
         brightnessScale: this.config.goveeBrightnessScale ?? 1,
         colorTemperatureOffset:
