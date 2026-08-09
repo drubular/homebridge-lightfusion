@@ -42,6 +42,11 @@ export {
   GOVEE_H60A1_VS_HUE_PROFILE,
 } from './calibration-profiles/govee-h60a1-vs-hue.js';
 
+export {
+  discoverGoveeDevices,
+  type DiscoveredGoveeDevice,
+} from './providers/govee-discovery.js';
+
 export { ProviderRegistry } from './provider-registry.js';
 export { normalizeLightState } from './state-normalization.js';
 
