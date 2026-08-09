@@ -5,10 +5,14 @@ import { GoveeProvider } from '../dist/index.js';
 
 function createProvider() {
   return new GoveeProvider({
-    id: 'livingroom-big-light',
-    name: 'Livingroom Big Light',
-    model: 'H60A1',
-    ip: '192.168.68.99',
+    devices: [
+      {
+        id: 'livingroom-big-light',
+        name: 'Livingroom Big Light',
+        model: 'H60A1',
+        ip: '192.168.68.99',
+      },
+    ],
   });
 }
 

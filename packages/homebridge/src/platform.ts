@@ -221,10 +221,14 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
     for (const govee of configuredGoveeLights) {
       this.registry.register(
         new GoveeProvider({
-          id: govee.id,
-          name: govee.name ?? 'Govee Light',
-          model: govee.model ?? 'unknown',
-          ip: govee.ip,
+          devices: [
+            {
+              id: govee.id,
+              name: govee.name ?? 'Govee Light',
+              model: govee.model ?? 'unknown',
+              ip: govee.ip,
+            },
+          ],
         }),
       );
 
