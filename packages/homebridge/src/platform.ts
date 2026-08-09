@@ -60,7 +60,7 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
           { input: 300, output: 300 },
         ],
         lowSaturation: {
-          threshold: 25,
+          threshold: 30,
           points: [
             {
               inputHue: 40,
@@ -102,6 +102,18 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
               inputHue: 359,
               inputSaturation: 8,
               outputHue: 21,
+              outputSaturation: 72,
+            },
+            {
+              inputHue: 128,
+              inputSaturation: 26,
+              outputHue: 110,
+              outputSaturation: 72,
+            },
+            {
+              inputHue: 140,
+              inputSaturation: 24,
+              outputHue: 112,
               outputSaturation: 72,
             },
           ],
