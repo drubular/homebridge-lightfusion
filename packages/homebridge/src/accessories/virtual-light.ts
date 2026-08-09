@@ -76,11 +76,6 @@ export class VirtualLight {
       .getCharacteristic(characteristic.Hue)
       .onGet(() => this.group.state.hue)
       .onSet(async (value: CharacteristicValue) => {
-        console.log(
-          '[LightFusion Debug] Hue:',
-          Number(value),
-        );
-
         this.queueColorUpdate({
           hue: Number(value),
         });
@@ -90,16 +85,21 @@ export class VirtualLight {
       .getCharacteristic(characteristic.Saturation)
       .onGet(() => this.group.state.saturation)
       .onSet(async (value: CharacteristicValue) => {
-        console.log(
-          '[LightFusion Debug] Saturation:',
-          Number(value),
-        );
-
         this.queueColorUpdate({
           saturation: Number(value),
         });
       });
 
+    this.service
+      .getCharacteristic(characteristic.ColorTemperature)
+      .onGet(() => this.group.state.colorTemperature)
+      .onSet(async (value: CharacteristicValue) => {
+        this.cancelPendingColorUpdate();
+
+        await this.onStateChange({
+          colorTemperature: Number(value),
+        });
+      });
     this.service
       .getCharacteristic(characteristic.ColorTemperature)
       .onGet(() => this.group.state.colorTemperature)
