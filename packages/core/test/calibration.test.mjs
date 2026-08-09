@@ -168,7 +168,7 @@ test('maps hue using calibration anchors', () => {
     );
 });
 
-test('leaves hue unchanged outside mapped range', () => {
+test('interpolates hue across wraparound range', () => {
     assert.deepEqual(
         applyCalibration(
             { hue: 240 },
@@ -179,6 +179,6 @@ test('leaves hue unchanged outside mapped range', () => {
                 ],
             },
         ),
-        { hue: 240 },
+        { hue: 152 },
     );
 });
