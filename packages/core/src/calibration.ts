@@ -5,26 +5,40 @@ export interface HueCalibrationPoint {
   output: number;
 }
 
+export interface LowSaturationCalibration {
+  threshold: number;
+  points: LowSaturationCalibrationPoint[];
+}
+
 export interface LowSaturationCalibrationPoint {
   inputHue: number;
   inputSaturation: number;
   outputHue: number;
   outputSaturation: number;
 }
+export interface ColorCalibration {
+  minimumSaturation: number;
+  maximumSaturation: number;
+  points: ColorCalibrationPoint[];
+}
 
-export interface LowSaturationCalibration {
-  threshold: number;
-  points: LowSaturationCalibrationPoint[];
+export interface ColorCalibrationPoint {
+  inputHue: number;
+  inputSaturation: number;
+  outputHue: number;
+  outputSaturation: number;
 }
 
 export interface CalibrationProfile {
   hueOffset?: number;
   hueMap?: HueCalibrationPoint[];
   lowSaturation?: LowSaturationCalibration;
+  colorMap?: ColorCalibration;
   saturationScale?: number;
   brightnessScale?: number;
   colorTemperatureOffset?: number;
 }
+
 
 function clamp(
   value: number,
@@ -122,7 +136,7 @@ function interpolateHue(
 
       return normalizeHue(
         start.output +
-          (end.output - start.output) * progress,
+        (end.output - start.output) * progress,
       );
     }
   }
@@ -199,15 +213,15 @@ function applyLowSaturationCalibration(
       const saturationDistance =
         Math.abs(
           (state.saturation as number) -
-            point.inputSaturation,
+          point.inputSaturation,
         ) / profile.threshold;
 
       return {
         point,
         distance: Math.sqrt(
           hueDistance * hueDistance +
-            saturationDistance *
-              saturationDistance,
+          saturationDistance *
+          saturationDistance,
         ),
       };
     })
@@ -244,11 +258,11 @@ function applyLowSaturationCalibration(
 
   state.saturation = clamp(
     first.point.outputSaturation +
-      (
-        second.point.outputSaturation -
-        first.point.outputSaturation
-      ) *
-        progress,
+    (
+      second.point.outputSaturation -
+      first.point.outputSaturation
+    ) *
+    progress,
     0,
     100,
   );
@@ -256,6 +270,105 @@ function applyLowSaturationCalibration(
   return true;
 }
 
+function applyColorCalibration(
+  state: Partial<LightState>,
+  profile: ColorCalibration,
+): boolean {
+  if (
+    state.hue === undefined ||
+    state.saturation === undefined ||
+    state.saturation < profile.minimumSaturation ||
+    state.saturation > profile.maximumSaturation ||
+    profile.points.length === 0
+  ) {
+    return false;
+  }
+
+  const exact = profile.points.find(
+    (point) =>
+      point.inputHue === state.hue &&
+      point.inputSaturation === state.saturation,
+  );
+
+  if (exact) {
+    state.hue = exact.outputHue;
+    state.saturation = exact.outputSaturation;
+    return true;
+  }
+
+  const saturationRange =
+    profile.maximumSaturation -
+    profile.minimumSaturation;
+
+  const ranked = [...profile.points]
+    .map((point) => {
+      const hueDistance =
+        circularHueDistance(
+          state.hue as number,
+          point.inputHue,
+        ) / 180;
+
+      const saturationDistance =
+        saturationRange === 0
+          ? 0
+          : Math.abs(
+            (state.saturation as number) -
+            point.inputSaturation,
+          ) / saturationRange;
+
+      return {
+        point,
+        distance: Math.sqrt(
+          hueDistance * hueDistance +
+          saturationDistance *
+          saturationDistance,
+        ),
+      };
+    })
+    .sort((a, b) => a.distance - b.distance);
+
+  const first = ranked[0];
+  const second = ranked[1];
+
+  if (!first) {
+    return false;
+  }
+
+  if (!second || first.distance === 0) {
+    state.hue = first.point.outputHue;
+    state.saturation =
+      first.point.outputSaturation;
+
+    return true;
+  }
+
+  const totalDistance =
+    first.distance + second.distance;
+
+  const progress =
+    totalDistance === 0
+      ? 0
+      : first.distance / totalDistance;
+
+  state.hue = interpolateCircularHue(
+    first.point.outputHue,
+    second.point.outputHue,
+    progress,
+  );
+
+  state.saturation = clamp(
+    first.point.outputSaturation +
+    (
+      second.point.outputSaturation -
+      first.point.outputSaturation
+    ) *
+    progress,
+    0,
+    100,
+  );
+
+  return true;
+}
 export function applyCalibration(
   state: Partial<LightState>,
   profile: CalibrationProfile,
@@ -267,13 +380,23 @@ export function applyCalibration(
   const lowSaturationApplied =
     profile.lowSaturation !== undefined
       ? applyLowSaturationCalibration(
-          calibrated,
-          profile.lowSaturation,
-        )
+        calibrated,
+        profile.lowSaturation,
+      )
+      : false;
+
+  const colorMapApplied =
+    !lowSaturationApplied &&
+      profile.colorMap !== undefined
+      ? applyColorCalibration(
+        calibrated,
+        profile.colorMap,
+      )
       : false;
 
   if (
     !lowSaturationApplied &&
+    !colorMapApplied &&
     calibrated.hue !== undefined
   ) {
     if (
@@ -289,7 +412,7 @@ export function applyCalibration(
     ) {
       calibrated.hue = normalizeHue(
         calibrated.hue +
-          profile.hueOffset,
+        profile.hueOffset,
       );
     }
   }
@@ -300,7 +423,7 @@ export function applyCalibration(
   ) {
     calibrated.saturation = clamp(
       calibrated.saturation *
-        profile.saturationScale,
+      profile.saturationScale,
       0,
       100,
     );
@@ -312,7 +435,7 @@ export function applyCalibration(
   ) {
     calibrated.brightness = clamp(
       calibrated.brightness *
-        profile.brightnessScale,
+      profile.brightnessScale,
       0,
       100,
     );
@@ -324,7 +447,7 @@ export function applyCalibration(
   ) {
     calibrated.colorTemperature = clamp(
       calibrated.colorTemperature +
-        profile.colorTemperatureOffset,
+      profile.colorTemperatureOffset,
       140,
       500,
     );
