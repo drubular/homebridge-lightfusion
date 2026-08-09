@@ -35,6 +35,7 @@ export {
   applyCalibration,
   type CalibrationProfile,
   type HueCalibrationPoint,
+  type LowSaturationCalibration,
 } from './calibration.js';
 
 export { ProviderRegistry } from './provider-registry.js';

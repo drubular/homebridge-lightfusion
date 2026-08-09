@@ -59,6 +59,23 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
           { input: 240, output: 235 },
           { input: 300, output: 300 },
         ],
+        lowSaturation: {
+          threshold: 25,
+          points: [
+            {
+              inputHue: 162,
+              inputSaturation: 8,
+              outputHue: 38,
+              outputSaturation: 72,
+            },
+            {
+              inputHue: 40,
+              inputSaturation: 16,
+              outputHue: 23,
+              outputSaturation: 80,
+            },
+          ],
+        },
         saturationScale: this.config.goveeSaturationScale ?? 1,
         brightnessScale: this.config.goveeBrightnessScale ?? 1,
         colorTemperatureOffset:

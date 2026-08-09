@@ -182,3 +182,102 @@ test('interpolates hue across wraparound range', () => {
         { hue: 152 },
     );
 });
+
+test('applies exact measured low-saturation calibration point', () => {
+  const result = applyCalibration(
+    {
+      hue: 162,
+      saturation: 8,
+    },
+    {
+      lowSaturation: {
+        threshold: 25,
+        points: [
+          {
+            inputHue: 162,
+            inputSaturation: 8,
+            outputHue: 38,
+            outputSaturation: 72,
+          },
+          {
+            inputHue: 40,
+            inputSaturation: 16,
+            outputHue: 23,
+            outputSaturation: 80,
+          },
+        ],
+      },
+    },
+  );
+
+  assert.deepEqual(result, {
+    hue: 38,
+    saturation: 72,
+  });
+});
+
+test('applies second measured low-saturation calibration point', () => {
+  const result = applyCalibration(
+    {
+      hue: 40,
+      saturation: 16,
+    },
+    {
+      lowSaturation: {
+        threshold: 25,
+        points: [
+          {
+            inputHue: 162,
+            inputSaturation: 8,
+            outputHue: 38,
+            outputSaturation: 72,
+          },
+          {
+            inputHue: 40,
+            inputSaturation: 16,
+            outputHue: 23,
+            outputSaturation: 80,
+          },
+        ],
+      },
+    },
+  );
+
+  assert.deepEqual(result, {
+    hue: 23,
+    saturation: 80,
+  });
+});
+
+test('leaves saturation at or above threshold unchanged', () => {
+  const result = applyCalibration(
+    {
+      hue: 120,
+      saturation: 25,
+    },
+    {
+      lowSaturation: {
+        threshold: 25,
+        points: [
+          {
+            inputHue: 162,
+            inputSaturation: 8,
+            outputHue: 38,
+            outputSaturation: 72,
+          },
+          {
+            inputHue: 40,
+            inputSaturation: 16,
+            outputHue: 23,
+            outputSaturation: 80,
+          },
+        ],
+      },
+    },
+  );
+
+  assert.deepEqual(result, {
+    hue: 120,
+    saturation: 25,
+  });
+});
