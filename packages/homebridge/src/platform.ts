@@ -167,6 +167,7 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
 
     this.api.on('didFinishLaunching', () => {
       this.discoverVirtualLights();
+      void this.discoverAvailableLights();
     });
   }
 
@@ -411,6 +412,24 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
         PLUGIN_NAME,
         PLATFORM_NAME,
         [accessory],
+      );
+    }
+  }
+  private async discoverAvailableLights(): Promise<void> {
+    try {
+      const lights = await this.registry.getLights();
+
+      for (const light of lights) {
+        this.logger.info(
+          `Discovered light: ${light.providerId}:${light.id} (${light.name})`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `Light discovery failed: ${error instanceof Error
+          ? error.message
+          : String(error)
+        }`,
       );
     }
   }
