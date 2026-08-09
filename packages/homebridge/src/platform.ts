@@ -54,7 +54,7 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
           { input: 120, output: 120 },
           { input: 135, output: 115 },
           { input: 150, output: 120 },
-          { input: 180, output: 125 }, 
+          { input: 180, output: 128 }, 
           { input: 240, output: 235 },
           { input: 300, output: 300 },
         ],
