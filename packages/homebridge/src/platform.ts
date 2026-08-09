@@ -82,26 +82,37 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
         return undefined;
       }
 
+      const govee =
+        this.getGoveeConfig(light.lightId);
+
+      if (!govee) {
+        return undefined;
+      }
+
       const profile =
-        this.config.calibrationProfile === 'govee-h60a1-vs-hue'
+        govee.calibrationProfile ===
+          'govee-h60a1-vs-hue'
           ? GOVEE_H60A1_VS_HUE_PROFILE
           : undefined;
 
       if (!profile) {
         return undefined;
       }
-
       return {
         ...profile,
 
+        ...(govee.hueOffset !== undefined
+          ? { hueOffset: govee.hueOffset }
+          : {}),
+
         saturationScale:
-          this.config.goveeSaturationScale ?? 1,
+          govee.saturationScale ?? 1,
 
         brightnessScale:
-          this.config.goveeBrightnessScale ?? 1,
+          govee.brightnessScale ?? 1,
 
         colorTemperatureOffset:
-          this.config.goveeColorTemperatureOffset ??
+          govee.colorTemperatureOffset ??
           profile.colorTemperatureOffset ??
           15,
       };
@@ -224,6 +235,68 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
     if (configuredGoveeLights.length === 0) {
       this.logger.warn('Govee provider not configured');
     }
+  }
+
+  private getGoveeConfig(
+    lightId: string,
+  ): LightFusionGoveeConfig | undefined {
+    if (
+      this.config.groups &&
+      this.config.groups.length > 0
+    ) {
+      for (const group of this.config.groups) {
+        if (group.govee?.id === lightId) {
+          return group.govee;
+        }
+      }
+
+      return undefined;
+    }
+
+    if (
+      this.config.goveeLightId === lightId &&
+      this.config.goveeIp
+    ) {
+      return {
+        id: lightId,
+        ip: this.config.goveeIp,
+        ...(this.config.goveeName
+          ? { name: this.config.goveeName }
+          : {}),
+        ...(this.config.goveeModel
+          ? { model: this.config.goveeModel }
+          : {}),
+        ...(this.config.calibrationProfile
+          ? {
+            calibrationProfile:
+              this.config.calibrationProfile,
+          }
+          : {}),
+        ...(this.config.goveeHueOffset !== undefined
+          ? { hueOffset: this.config.goveeHueOffset }
+          : {}),
+        ...(this.config.goveeSaturationScale !== undefined
+          ? {
+            saturationScale:
+              this.config.goveeSaturationScale,
+          }
+          : {}),
+        ...(this.config.goveeBrightnessScale !== undefined
+          ? {
+            brightnessScale:
+              this.config.goveeBrightnessScale,
+          }
+          : {}),
+        ...(this.config.goveeColorTemperatureOffset !== undefined
+          ? {
+            colorTemperatureOffset:
+              this.config.goveeColorTemperatureOffset,
+          }
+          : {}),
+      };
+    }
+
+    return undefined;
   }
 
   private createGroupMembers(
