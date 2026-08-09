@@ -338,6 +338,29 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
   }
 
   private discoverVirtualLights(): void {
+    const configuredUuids = new Set(
+      this.groups.map((group) =>
+        this.api.hap.uuid.generate(group.id),
+      ),
+    );
+
+    const staleAccessories = this.cachedAccessories.filter(
+      (accessory) =>
+        !configuredUuids.has(accessory.UUID),
+    );
+
+    if (staleAccessories.length > 0) {
+      this.logger.info(
+        `Removing ${staleAccessories.length} stale LightFusion accessory(s)`,
+      );
+
+      this.api.unregisterPlatformAccessories(
+        PLUGIN_NAME,
+        PLATFORM_NAME,
+        staleAccessories,
+      );
+    }
+
     for (const group of this.groups) {
       const uuid = this.api.hap.uuid.generate(
         group.id,
