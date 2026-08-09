@@ -14,7 +14,7 @@
       "hueBridgeIp": {
         "title": "Hue Bridge IP",
         "type": "string",
-        "placeholder": "192.168.68.80",
+        "placeholder": "192.168.1.100",
         "required": true
       },
       "hueApplicationKey": {
@@ -22,45 +22,96 @@
         "type": "string",
         "required": true
       },
-      "hueLightIds": {
-        "title": "Hue Light IDs",
+      "groups": {
+        "title": "Light Groups",
         "type": "array",
+        "required": true,
         "items": {
-          "type": "string"
-        },
-        "required": true
-      },
-      "goveeIp": {
-        "title": "Govee H60A1 IP",
-        "type": "string",
-        "placeholder": "192.168.68.xxx",
-        "required": true
-      },
-      "goveeLightId": {
-        "title": "Govee Light ID",
-        "type": "string",
-        "default": "livingroom-big-light",
-        "required": true
-      },
-      "goveeHueOffset": {
-        "title": "Govee Hue Offset",
-        "type": "number",
-        "default": 0
-      },
-      "goveeSaturationScale": {
-        "title": "Govee Saturation Scale",
-        "type": "number",
-        "default": 1
-      },
-      "goveeBrightnessScale": {
-        "title": "Govee Brightness Scale",
-        "type": "number",
-        "default": 1
-      },
-      "goveeColorTemperatureOffset": {
-        "title": "Govee Color Temperature Offset",
-        "type": "number",
-        "default": 0
+          "type": "object",
+          "properties": {
+            "id": {
+              "title": "Group ID",
+              "type": "string",
+              "placeholder": "living-room-color-sync",
+              "required": true
+            },
+            "name": {
+              "title": "HomeKit Name",
+              "type": "string",
+              "placeholder": "Living Room Color Sync",
+              "required": true
+            },
+            "hueLightIds": {
+              "title": "Hue Light IDs",
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "required": true
+            },
+            "govee": {
+              "title": "Govee Light",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "title": "Light ID",
+                  "type": "string",
+                  "placeholder": "livingroom-big-light",
+                  "required": true
+                },
+                "name": {
+                  "title": "Light Name",
+                  "type": "string",
+                  "placeholder": "Living Room Big Light"
+                },
+                "model": {
+                  "title": "Model",
+                  "type": "string",
+                  "placeholder": "H60A1"
+                },
+                "ip": {
+                  "title": "IP Address",
+                  "type": "string",
+                  "placeholder": "192.168.1.120",
+                  "required": true
+                },
+                "calibrationProfile": {
+                  "title": "Calibration Profile",
+                  "type": "string",
+                  "oneOf": [
+                    {
+                      "title": "None",
+                      "enum": [""]
+                    },
+                    {
+                      "title": "Govee H60A1 vs Philips Hue",
+                      "enum": ["govee-h60a1-vs-hue"]
+                    }
+                  ],
+                  "default": ""
+                },
+                "hueOffset": {
+                  "title": "Hue Offset",
+                  "type": "number"
+                },
+                "saturationScale": {
+                  "title": "Saturation Scale",
+                  "type": "number",
+                  "default": 1
+                },
+                "brightnessScale": {
+                  "title": "Brightness Scale",
+                  "type": "number",
+                  "default": 1
+                },
+                "colorTemperatureOffset": {
+                  "title": "Color Temperature Offset",
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
       }
     }
   }
