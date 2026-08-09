@@ -18,7 +18,7 @@ export class VirtualLight {
   private readonly service: Service;
 
   private pendingColorState: Partial<LightState> = {};
-private colorUpdateTimer: NodeJS.Timeout | undefined;
+  private colorUpdateTimer: NodeJS.Timeout | undefined;
 
   public constructor(
     private readonly api: API,
@@ -76,6 +76,11 @@ private colorUpdateTimer: NodeJS.Timeout | undefined;
       .getCharacteristic(characteristic.Hue)
       .onGet(() => this.group.state.hue)
       .onSet(async (value: CharacteristicValue) => {
+        console.log(
+          '[LightFusion Debug] Hue:',
+          Number(value),
+        );
+
         this.queueColorUpdate({
           hue: Number(value),
         });
@@ -85,6 +90,11 @@ private colorUpdateTimer: NodeJS.Timeout | undefined;
       .getCharacteristic(characteristic.Saturation)
       .onGet(() => this.group.state.saturation)
       .onSet(async (value: CharacteristicValue) => {
+        console.log(
+          '[LightFusion Debug] Saturation:',
+          Number(value),
+        );
+
         this.queueColorUpdate({
           saturation: Number(value),
         });
@@ -94,6 +104,11 @@ private colorUpdateTimer: NodeJS.Timeout | undefined;
       .getCharacteristic(characteristic.ColorTemperature)
       .onGet(() => this.group.state.colorTemperature)
       .onSet(async (value: CharacteristicValue) => {
+        console.log(
+          '[LightFusion Debug] ColorTemperature:',
+          Number(value),
+        );
+
         this.cancelPendingColorUpdate();
 
         await this.onStateChange({
