@@ -38,6 +38,10 @@ export {
   type LowSaturationCalibration,
 } from './calibration.js';
 
+export {
+  GOVEE_H60A1_VS_HUE_PROFILE,
+} from './calibration-profiles/govee-h60a1-vs-hue.js';
+
 export { ProviderRegistry } from './provider-registry.js';
 export { normalizeLightState } from './state-normalization.js';
 

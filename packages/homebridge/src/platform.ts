@@ -1,12 +1,15 @@
 import {
+  GOVEE_H60A1_VS_HUE_PROFILE,
   GoveeProvider,
   HueProvider,
   ProviderRegistry,
   SyncEngine,
   createLightGroup,
   type LightGroup,
+  type LightReference,
   type LightState,
 } from '@lightfusion/core';
+
 
 import type {
   API,
@@ -40,88 +43,27 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
   private readonly cachedAccessories: PlatformAccessory[] = [];
 
   private readonly registry = new ProviderRegistry();
+
   private readonly syncEngine = new SyncEngine(
     this.registry,
-    (light) => {
+    (light: LightReference) => {
       if (light.providerId !== 'govee') {
         return undefined;
       }
 
       return {
-        hueMap: [
-          { input: 0, output: 0 },
-          { input: 60, output: 60 },
-          { input: 120, output: 120 },
-          { input: 135, output: 115 },
-          { input: 150, output: 120 },
-          { input: 180, output: 128 },
-          { input: 210, output: 160 },
-          { input: 240, output: 235 },
-          { input: 300, output: 300 },
-        ],
-        lowSaturation: {
-          threshold: 30,
-          points: [
-            {
-              inputHue: 40,
-              inputSaturation: 16,
-              outputHue: 23,
-              outputSaturation: 80,
-            },
-            {
-              inputHue: 117,
-              inputSaturation: 2,
-              outputHue: 38,
-              outputSaturation: 72,
-            },
-            {
-              inputHue: 162,
-              inputSaturation: 8,
-              outputHue: 38,
-              outputSaturation: 72,
-            },
-            {
-              inputHue: 237,
-              inputSaturation: 8,
-              outputHue: 38,
-              outputSaturation: 72,
-            },
-            {
-              inputHue: 293,
-              inputSaturation: 24,
-              outputHue: 16,
-              outputSaturation: 65,
-            },
-            {
-              inputHue: 331,
-              inputSaturation: 22,
-              outputHue: 18,
-              outputSaturation: 75,
-            },
-            {
-              inputHue: 359,
-              inputSaturation: 8,
-              outputHue: 21,
-              outputSaturation: 72,
-            },
-            {
-              inputHue: 128,
-              inputSaturation: 26,
-              outputHue: 110,
-              outputSaturation: 72,
-            },
-            {
-              inputHue: 140,
-              inputSaturation: 24,
-              outputHue: 112,
-              outputSaturation: 72,
-            },
-          ],
-        },
-        saturationScale: this.config.goveeSaturationScale ?? 1,
-        brightnessScale: this.config.goveeBrightnessScale ?? 1,
+        ...GOVEE_H60A1_VS_HUE_PROFILE,
+
+        saturationScale:
+          this.config.goveeSaturationScale ?? 1,
+
+        brightnessScale:
+          this.config.goveeBrightnessScale ?? 1,
+
         colorTemperatureOffset:
-          this.config.goveeColorTemperatureOffset ?? 15,
+          this.config.goveeColorTemperatureOffset ??
+          GOVEE_H60A1_VS_HUE_PROFILE.colorTemperatureOffset ??
+          15,
       };
     },
   );
