@@ -43,6 +43,6 @@
     "@lightfusion/core": "0.0.0"
   },
   "devDependencies": {
-    "homebridge": "^2.0.0"
+    "homebridge": "^2.3.0"
   }
 }
