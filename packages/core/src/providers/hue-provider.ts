@@ -26,7 +26,7 @@ export class HueProvider implements LightProvider {
 
   public constructor(
     private readonly config: HueProviderConfig,
-  ) {}
+  ) { }
 
   public async getLights(): Promise<LightDescriptor[]> {
     const lights = await this.fetchLights();
@@ -106,6 +106,7 @@ export class HueProvider implements LightProvider {
         `Hue request failed with status ${response.status}`,
       );
     }
+
   }
 
   public async isAvailable(lightId: string): Promise<boolean> {
