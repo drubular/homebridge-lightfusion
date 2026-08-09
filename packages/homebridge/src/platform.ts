@@ -23,8 +23,9 @@ import { VirtualLight } from './accessories/virtual-light.js';
 import { LightFusionLogger } from './logger.js';
 import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 
-const VIRTUAL_LIGHT_NAME = 'Living Room Color Sync';
-const VIRTUAL_LIGHT_ID = 'lightfusion:group:living-room-color-sync';
+
+const DEFAULT_GROUP_NAME = 'LightFusion Color Sync';
+const DEFAULT_GROUP_ID = 'lightfusion:group:default';
 
 interface LightFusionPlatformConfig extends PlatformConfig {
   hueBridgeIp?: string;
@@ -36,6 +37,9 @@ interface LightFusionPlatformConfig extends PlatformConfig {
   goveeSaturationScale?: number;
   goveeBrightnessScale?: number;
   goveeColorTemperatureOffset?: number;
+  groupName?: string;
+  groupId?: string;
+  calibrationProfile?: string;
 }
 
 export class LightFusionPlatform implements DynamicPlatformPlugin {
@@ -51,8 +55,17 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
         return undefined;
       }
 
+      const profile =
+        this.config.calibrationProfile === 'govee-h60a1-vs-hue'
+          ? GOVEE_H60A1_VS_HUE_PROFILE
+          : undefined;
+
+      if (!profile) {
+        return undefined;
+      }
+
       return {
-        ...GOVEE_H60A1_VS_HUE_PROFILE,
+        ...profile,
 
         saturationScale:
           this.config.goveeSaturationScale ?? 1,
@@ -62,7 +75,7 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
 
         colorTemperatureOffset:
           this.config.goveeColorTemperatureOffset ??
-          GOVEE_H60A1_VS_HUE_PROFILE.colorTemperatureOffset ??
+          profile.colorTemperatureOffset ??
           15,
       };
     },
@@ -78,9 +91,15 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
 
     this.configureProviders();
 
+    const groupName =
+      this.config.groupName ?? DEFAULT_GROUP_NAME;
+
+    const groupId =
+      this.config.groupId ?? DEFAULT_GROUP_ID;
+
     this.group = createLightGroup(
-      'living-room-color-sync',
-      VIRTUAL_LIGHT_NAME,
+      groupId,
+      groupName,
       this.createGroupMembers(),
     );
 
@@ -167,8 +186,14 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
   }
 
   private discoverVirtualLights(): void {
+    const groupName =
+      this.config.groupName ?? DEFAULT_GROUP_NAME;
+
+    const groupId =
+      this.config.groupId ?? DEFAULT_GROUP_ID;
+
     const uuid = this.api.hap.uuid.generate(
-      VIRTUAL_LIGHT_ID,
+      groupId,
     );
 
     const existingAccessory = this.cachedAccessories.find(
@@ -177,7 +202,7 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
 
     if (existingAccessory) {
       this.logger.info(
-        `Restoring accessory: ${VIRTUAL_LIGHT_NAME}`,
+        `Restoring accessory: ${groupName}`,
       );
 
       new VirtualLight(
@@ -191,11 +216,11 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
     }
 
     this.logger.info(
-      `Adding accessory: ${VIRTUAL_LIGHT_NAME}`,
+      `Adding accessory: ${groupName}`,
     );
 
     const accessory = new this.api.platformAccessory(
-      VIRTUAL_LIGHT_NAME,
+      groupName,
       uuid,
     );
 
