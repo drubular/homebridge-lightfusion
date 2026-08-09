@@ -62,7 +62,7 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
         saturationScale: this.config.goveeSaturationScale ?? 1,
         brightnessScale: this.config.goveeBrightnessScale ?? 1,
         colorTemperatureOffset:
-          this.config.goveeColorTemperatureOffset ?? 0,
+          this.config.goveeColorTemperatureOffset ?? 15,
       };
     },
   );
