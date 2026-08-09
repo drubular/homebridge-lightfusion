@@ -27,19 +27,46 @@ import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 const DEFAULT_GROUP_NAME = 'LightFusion Color Sync';
 const DEFAULT_GROUP_ID = 'lightfusion:group:default';
 
+interface LightFusionGoveeConfig {
+  id: string;
+  name?: string;
+  model?: string;
+  ip: string;
+  calibrationProfile?: string;
+  hueOffset?: number;
+  saturationScale?: number;
+  brightnessScale?: number;
+  colorTemperatureOffset?: number;
+}
+
+interface LightFusionGroupConfig {
+  id: string;
+  name: string;
+  hueLightIds: string[];
+  govee?: LightFusionGoveeConfig;
+}
+
 interface LightFusionPlatformConfig extends PlatformConfig {
   hueBridgeIp?: string;
   hueApplicationKey?: string;
+
+  groups?: LightFusionGroupConfig[];
+
+  // Temporary legacy single-group configuration.
+  groupName?: string;
+  groupId?: string;
   hueLightIds?: string[];
+
   goveeIp?: string;
   goveeLightId?: string;
+  goveeName?: string;
+  goveeModel?: string;
+  calibrationProfile?: string;
+
   goveeHueOffset?: number;
   goveeSaturationScale?: number;
   goveeBrightnessScale?: number;
   goveeColorTemperatureOffset?: number;
-  groupName?: string;
-  groupId?: string;
-  calibrationProfile?: string;
 }
 
 export class LightFusionPlatform implements DynamicPlatformPlugin {
@@ -80,7 +107,7 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
       };
     },
   );
-  private readonly group: LightGroup;
+  private readonly groups: LightGroup[] = [];
 
   public constructor(
     log: Logger,
@@ -91,17 +118,39 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
 
     this.configureProviders();
 
-    const groupName =
-      this.config.groupName ?? DEFAULT_GROUP_NAME;
+    const configuredGroups: LightFusionGroupConfig[] =
+      this.config.groups && this.config.groups.length > 0
+        ? this.config.groups
+        : [
+          {
+            id:
+              this.config.groupId ??
+              'lightfusion:group:living-room-color-sync',
+            name:
+              this.config.groupName ??
+              'Living Room Color Sync',
+            hueLightIds: this.config.hueLightIds ?? [],
+            ...(this.config.goveeIp &&
+              this.config.goveeLightId
+              ? {
+                govee: {
+                  id: this.config.goveeLightId,
+                  ip: this.config.goveeIp,
+                },
+              }
+              : {}),
+          },
+        ];
 
-    const groupId =
-      this.config.groupId ?? DEFAULT_GROUP_ID;
-
-    this.group = createLightGroup(
-      groupId,
-      groupName,
-      this.createGroupMembers(),
-    );
+    for (const groupConfig of configuredGroups) {
+      this.groups.push(
+        createLightGroup(
+          groupConfig.id,
+          groupConfig.name,
+          this.createGroupMembers(groupConfig),
+        ),
+      );
+    }
 
     this.logger.info('Platform initialized');
 
@@ -131,39 +180,68 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
       this.logger.warn('Hue provider not configured');
     }
 
-    if (
-      this.config.goveeIp &&
-      this.config.goveeLightId
-    ) {
+    const configuredGoveeLights =
+      this.config.groups && this.config.groups.length > 0
+        ? this.config.groups
+          .map((group) => group.govee)
+          .filter(
+            (
+              govee,
+            ): govee is LightFusionGoveeConfig =>
+              govee !== undefined,
+          )
+        : this.config.goveeIp &&
+          this.config.goveeLightId
+          ? [
+            {
+              id: this.config.goveeLightId,
+              name:
+                this.config.goveeName ??
+                'Govee Light',
+              model:
+                this.config.goveeModel ??
+                'unknown',
+              ip: this.config.goveeIp,
+            },
+          ]
+          : [];
+
+    for (const govee of configuredGoveeLights) {
       this.registry.register(
         new GoveeProvider({
-          id: this.config.goveeLightId,
-          name: 'Livingroom Big Light',
-          model: 'H60A1',
-          ip: this.config.goveeIp,
+          id: govee.id,
+          name: govee.name ?? 'Govee Light',
+          model: govee.model ?? 'unknown',
+          ip: govee.ip,
         }),
       );
 
-      this.logger.info('Govee provider registered');
-    } else {
+      this.logger.info(
+        `Govee provider registered: ${govee.name ?? govee.id}`,
+      );
+    }
+
+    if (configuredGoveeLights.length === 0) {
       this.logger.warn('Govee provider not configured');
     }
   }
 
-  private createGroupMembers() {
+  private createGroupMembers(
+    groupConfig: LightFusionGroupConfig,
+  ) {
     const members = [];
 
-    for (const lightId of this.config.hueLightIds ?? []) {
+    for (const lightId of groupConfig.hueLightIds) {
       members.push({
         providerId: 'hue',
         lightId,
       });
     }
 
-    if (this.config.goveeLightId) {
+    if (groupConfig.govee) {
       members.push({
         providerId: 'govee',
-        lightId: this.config.goveeLightId,
+        lightId: groupConfig.govee.id,
       });
     }
 
@@ -171,10 +249,11 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
   }
 
   private async handleStateChange(
+    group: LightGroup,
     state: Partial<LightState>,
   ): Promise<void> {
     const result = await this.syncEngine.syncGroup(
-      this.group,
+      group,
       state,
     );
 
@@ -186,55 +265,57 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
   }
 
   private discoverVirtualLights(): void {
-    const groupName =
-      this.config.groupName ?? DEFAULT_GROUP_NAME;
+    for (const group of this.groups) {
+      const uuid = this.api.hap.uuid.generate(
+        group.id,
+      );
 
-    const groupId =
-      this.config.groupId ?? DEFAULT_GROUP_ID;
+      const existingAccessory = this.cachedAccessories.find(
+        (accessory) => accessory.UUID === uuid,
+      );
 
-    const uuid = this.api.hap.uuid.generate(
-      groupId,
-    );
+      if (existingAccessory) {
+        this.logger.info(
+          `Restoring accessory: ${group.name}`,
+        );
 
-    const existingAccessory = this.cachedAccessories.find(
-      (accessory) => accessory.UUID === uuid,
-    );
+        new VirtualLight(
+          this.api,
+          existingAccessory,
+          group,
+          (state) => this.handleStateChange(
+            group,
+            state,
+          ),
+        );
 
-    if (existingAccessory) {
+        continue;
+      }
+
       this.logger.info(
-        `Restoring accessory: ${groupName}`,
+        `Adding accessory: ${group.name}`,
+      );
+
+      const accessory = new this.api.platformAccessory(
+        group.name,
+        uuid,
       );
 
       new VirtualLight(
         this.api,
-        existingAccessory,
-        this.group,
-        (state) => this.handleStateChange(state),
+        accessory,
+        group,
+        (state) => this.handleStateChange(
+          group,
+          state,
+        ),
       );
 
-      return;
+      this.api.registerPlatformAccessories(
+        PLUGIN_NAME,
+        PLATFORM_NAME,
+        [accessory],
+      );
     }
-
-    this.logger.info(
-      `Adding accessory: ${groupName}`,
-    );
-
-    const accessory = new this.api.platformAccessory(
-      groupName,
-      uuid,
-    );
-
-    new VirtualLight(
-      this.api,
-      accessory,
-      this.group,
-      (state) => this.handleStateChange(state),
-    );
-
-    this.api.registerPlatformAccessories(
-      PLUGIN_NAME,
-      PLATFORM_NAME,
-      [accessory],
-    );
   }
 }
