@@ -1,11 +1,9 @@
 <!doctype html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8">
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
   <title>LightFusion</title>
 
@@ -94,39 +92,30 @@
   <h2>LightFusion</h2>
 
   <p class="muted">
-    Discover compatible lights and create synchronized
-    virtual lighting groups.
+    Create synchronized virtual lighting groups from
+    compatible devices.
   </p>
 
   <section class="section">
     <div class="toolbar">
-      <button
-        id="discover-button"
-        type="button"
-      >
-        Discover Lights
+      <button id="discover-button" type="button">
+        Refresh Devices
       </button>
 
-      <button
-        id="add-group-button"
-        type="button"
-      >
+      <button id="add-group-button" type="button">
         Add Group
       </button>
     </div>
 
-    <div
-      id="status"
-      class="status"
-    ></div>
+    <div id="status" class="status"></div>
   </section>
 
   <section class="section">
-    <h3>Discovered Lights</h3>
+    <h3>Available Lights</h3>
 
     <div id="devices">
       <p class="muted">
-        Click Discover Lights to scan for devices.
+        Looking for compatible lights...
       </p>
     </div>
   </section>
@@ -141,40 +130,24 @@
     </div>
   </section>
 
-  <section
-    id="editor"
-    class="section hidden"
-  >
+  <section id="editor" class="section hidden">
     <h3 id="editor-title">
       Add Group
     </h3>
 
     <label>
       Group Name
-      <input
-        id="group-name"
-        type="text"
-        placeholder="Living Room Color Sync"
-      >
+      <input id="group-name" type="text" placeholder="Living Room Color Sync">
     </label>
 
-    <div
-      id="group-devices"
-      class="device-list"
-    ></div>
+    <div id="group-devices" class="device-list"></div>
 
     <div class="toolbar">
-      <button
-        id="save-group-button"
-        type="button"
-      >
+      <button id="save-group-button" type="button">
         Save Group
       </button>
 
-      <button
-        id="cancel-group-button"
-        type="button"
-      >
+      <button id="cancel-group-button" type="button">
         Cancel
       </button>
     </div>
@@ -397,6 +370,13 @@
       }
 
       function openNewGroupEditor() {
+        if (discoveredLights.length === 0) {
+          setStatus(
+            'No compatible lights are currently available. Refresh devices and try again.',
+          );
+          return;
+        }
+
         editingGroupId = null;
         editorTitle.textContent = 'Add Group';
         groupNameInput.value = '';
@@ -553,9 +533,9 @@
         const existingGroup =
           editingGroupId
             ? groups.find(
-                (group) =>
-                  group.id === editingGroupId,
-              )
+              (group) =>
+                group.id === editingGroupId,
+            )
             : undefined;
 
         const group = {
@@ -643,8 +623,16 @@
         closeEditor,
       );
 
-      void loadGroups();
+      void (async () => {
+        addGroupButton.disabled = true;
+
+        await loadGroups();
+        await discoverLights();
+
+        addGroupButton.disabled = false;
+      })();
     })();
   </script>
 </body>
+
 </html>
