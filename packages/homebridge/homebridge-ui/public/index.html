@@ -426,7 +426,7 @@
         discoverButton.disabled = true;
 
         setStatus(
-          'Discovering Hue and Govee lights...',
+          'Finding compatible lights… You can create groups as soon as your available lights are ready.',
         );
 
         try {
@@ -438,9 +438,15 @@
           renderDiscoveredLights();
           renderGroups();
 
-          setStatus(
-            `Found ${discoveredLights.length} light(s).`,
-          );
+          if (discoveredLights.length > 0) {
+            setStatus(
+              `${discoveredLights.length} light(s) found. You can now create or edit groups.`,
+            );
+          } else {
+            setStatus(
+              'No compatible lights found. Check your device setup, then select Refresh Devices.',
+            );
+          }
         } catch (error) {
           setStatus(
             `Discovery failed: ${error.message}`,
