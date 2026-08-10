@@ -9,7 +9,7 @@ import {
   HueProvider,
   discoverGoveeDevices,
   discoverHueBridges,
-} from '@lightfusion/core';
+} from 'lightfusion-core';
 
 class LightFusionUiServer extends HomebridgePluginUiServer {
   constructor() {

@@ -8,7 +8,7 @@ import {
   type LightGroup,
   type LightReference,
   type LightState,
-} from '@lightfusion/core';
+} from 'lightfusion-core';
 
 
 import type {

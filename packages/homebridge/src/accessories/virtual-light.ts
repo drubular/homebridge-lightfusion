@@ -1,7 +1,7 @@
 import type {
   LightGroup,
   LightState,
-} from '@lightfusion/core';
+} from 'lightfusion-core';
 
 import type {
   API,
