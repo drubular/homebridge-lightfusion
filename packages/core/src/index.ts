@@ -47,6 +47,11 @@ export {
   type DiscoveredGoveeDevice,
 } from './providers/govee-discovery.js';
 
+export {
+  discoverHueBridges,
+  type DiscoveredHueBridge,
+} from './providers/hue-discovery.js';
+
 export { ProviderRegistry } from './provider-registry.js';
 export { normalizeLightState } from './state-normalization.js';
 
