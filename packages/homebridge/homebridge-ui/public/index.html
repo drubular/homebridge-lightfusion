@@ -1,68 +1,650 @@
-<div class="container">
-  <h4 class="mb-3">LightFusion</h4>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
 
-  <p class="text-muted">
-    Discover supported Hue and Govee lights, then build synchronized virtual groups.
+  <title>LightFusion</title>
+
+  <style>
+    body {
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .section {
+      margin-bottom: 24px;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    button {
+      cursor: pointer;
+      padding: 9px 14px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px;
+      margin-top: 5px;
+    }
+
+    .device,
+    .group {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+
+    .device small {
+      opacity: 0.7;
+    }
+
+    .group-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .group-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .device-list {
+      margin-top: 12px;
+    }
+
+    .device-option {
+      display: block;
+      padding: 5px 0;
+    }
+
+    .status {
+      margin: 12px 0;
+    }
+
+    .muted {
+      opacity: 0.7;
+    }
+
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+
+<body>
+  <h2>LightFusion</h2>
+
+  <p class="muted">
+    Discover compatible lights and create synchronized
+    virtual lighting groups.
   </p>
 
-  <button
-    id="discover-button"
-    type="button"
-    class="btn btn-primary"
+  <section class="section">
+    <div class="toolbar">
+      <button
+        id="discover-button"
+        type="button"
+      >
+        Discover Lights
+      </button>
+
+      <button
+        id="add-group-button"
+        type="button"
+      >
+        Add Group
+      </button>
+    </div>
+
+    <div
+      id="status"
+      class="status"
+    ></div>
+  </section>
+
+  <section class="section">
+    <h3>Discovered Lights</h3>
+
+    <div id="devices">
+      <p class="muted">
+        Click Discover Lights to scan for devices.
+      </p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h3>LightFusion Groups</h3>
+
+    <div id="groups">
+      <p class="muted">
+        No groups loaded.
+      </p>
+    </div>
+  </section>
+
+  <section
+    id="editor"
+    class="section hidden"
   >
-    Discover Lights
-  </button>
+    <h3 id="editor-title">
+      Add Group
+    </h3>
 
-  <div
-    id="status"
-    class="mt-3"
-  ></div>
+    <label>
+      Group Name
+      <input
+        id="group-name"
+        type="text"
+        placeholder="Living Room Color Sync"
+      >
+    </label>
 
-  <div
-    id="devices"
-    class="mt-3"
-  ></div>
-</div>
+    <div
+      id="group-devices"
+      class="device-list"
+    ></div>
 
-<script>
-(async () => {
-  const button = document.getElementById('discover-button');
-  const status = document.getElementById('status');
-  const devices = document.getElementById('devices');
+    <div class="toolbar">
+      <button
+        id="save-group-button"
+        type="button"
+      >
+        Save Group
+      </button>
 
-  button.addEventListener('click', async () => {
-    button.disabled = true;
-    status.textContent = 'Discovering lights...';
-    devices.innerHTML = '';
+      <button
+        id="cancel-group-button"
+        type="button"
+      >
+        Cancel
+      </button>
+    </div>
+  </section>
 
-    try {
-      const result = await homebridge.request('/discover');
+  <script>
+    (() => {
+      const discoverButton =
+        document.getElementById('discover-button');
 
-      status.textContent =
-        `Found ${result.length} light(s)`;
+      const addGroupButton =
+        document.getElementById('add-group-button');
 
-      for (const light of result) {
-        const item = document.createElement('div');
-        item.className = 'card mb-2';
+      const saveGroupButton =
+        document.getElementById('save-group-button');
 
-        item.innerHTML = `
-          <div class="card-body">
+      const cancelGroupButton =
+        document.getElementById('cancel-group-button');
+
+      const status =
+        document.getElementById('status');
+
+      const devicesContainer =
+        document.getElementById('devices');
+
+      const groupsContainer =
+        document.getElementById('groups');
+
+      const editor =
+        document.getElementById('editor');
+
+      const editorTitle =
+        document.getElementById('editor-title');
+
+      const groupNameInput =
+        document.getElementById('group-name');
+
+      const groupDevicesContainer =
+        document.getElementById('group-devices');
+
+      let discoveredLights = [];
+      let groups = [];
+      let editingGroupId = null;
+
+      function setStatus(message) {
+        status.textContent = message;
+      }
+
+      function createGroupId(name) {
+        return `lightfusion:group:${name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '')}`;
+      }
+
+      function renderDiscoveredLights() {
+        devicesContainer.innerHTML = '';
+
+        if (discoveredLights.length === 0) {
+          devicesContainer.innerHTML =
+            '<p class="muted">No lights discovered.</p>';
+          return;
+        }
+
+        for (const light of discoveredLights) {
+          const item =
+            document.createElement('div');
+
+          item.className = 'device';
+
+          item.innerHTML = `
             <strong>${light.name}</strong><br>
             <small>
               ${light.providerId} · ${light.id}
               ${light.model ? ` · ${light.model}` : ''}
             </small>
-          </div>
-        `;
+          `;
 
-        devices.appendChild(item);
+          devicesContainer.appendChild(item);
+        }
       }
-    } catch (error) {
-      status.textContent =
-        `Discovery failed: ${error.message}`;
-    } finally {
-      button.disabled = false;
-    }
-  });
-})();
-</script>
+
+      function renderGroups() {
+        groupsContainer.innerHTML = '';
+
+        if (groups.length === 0) {
+          groupsContainer.innerHTML =
+            '<p class="muted">No LightFusion groups configured.</p>';
+          return;
+        }
+
+        for (const group of groups) {
+          const item =
+            document.createElement('div');
+
+          item.className = 'group';
+
+          const deviceNames = [];
+
+          for (const lightId of group.hueLightIds ?? []) {
+            const light = discoveredLights.find(
+              (candidate) =>
+                candidate.providerId === 'hue' &&
+                candidate.id === lightId,
+            );
+
+            deviceNames.push(
+              light?.name ?? `Hue ${lightId}`,
+            );
+          }
+
+          if (group.govee?.id) {
+            const light = discoveredLights.find(
+              (candidate) =>
+                candidate.providerId === 'govee' &&
+                candidate.id === group.govee.id,
+            );
+
+            deviceNames.push(
+              light?.name ??
+              group.govee.name ??
+              group.govee.id,
+            );
+          }
+
+          item.innerHTML = `
+            <div class="group-header">
+              <div>
+                <strong>${group.name}</strong><br>
+                <small>
+                  ${deviceNames.join(', ') || 'No devices'}
+                </small>
+              </div>
+
+              <div class="group-actions">
+                <button
+                  type="button"
+                  data-edit="${group.id}"
+                >
+                  Edit
+                </button>
+
+                <button
+                  type="button"
+                  data-delete="${group.id}"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          `;
+
+          groupsContainer.appendChild(item);
+        }
+
+        groupsContainer
+          .querySelectorAll('[data-edit]')
+          .forEach((button) => {
+            button.addEventListener(
+              'click',
+              () => {
+                editGroup(
+                  button.dataset.edit,
+                );
+              },
+            );
+          });
+
+        groupsContainer
+          .querySelectorAll('[data-delete]')
+          .forEach((button) => {
+            button.addEventListener(
+              'click',
+              async () => {
+                await deleteGroup(
+                  button.dataset.delete,
+                );
+              },
+            );
+          });
+      }
+
+      function renderGroupDeviceOptions(
+        selectedKeys = new Set(),
+      ) {
+        groupDevicesContainer.innerHTML = '';
+
+        if (discoveredLights.length === 0) {
+          groupDevicesContainer.innerHTML =
+            '<p class="muted">Discover lights before creating a group.</p>';
+          return;
+        }
+
+        for (const light of discoveredLights) {
+          const key =
+            `${light.providerId}:${light.id}`;
+
+          const label =
+            document.createElement('label');
+
+          label.className = 'device-option';
+
+          const checkbox =
+            document.createElement('input');
+
+          checkbox.type = 'checkbox';
+          checkbox.value = key;
+          checkbox.checked =
+            selectedKeys.has(key);
+
+          label.appendChild(checkbox);
+
+          label.append(
+            ` ${light.name} (${light.providerId})`,
+          );
+
+          groupDevicesContainer.appendChild(label);
+        }
+      }
+
+      function openNewGroupEditor() {
+        editingGroupId = null;
+        editorTitle.textContent = 'Add Group';
+        groupNameInput.value = '';
+
+        renderGroupDeviceOptions();
+
+        editor.classList.remove('hidden');
+      }
+
+      function editGroup(groupId) {
+        const group = groups.find(
+          (candidate) =>
+            candidate.id === groupId,
+        );
+
+        if (!group) {
+          return;
+        }
+
+        editingGroupId = group.id;
+        editorTitle.textContent = 'Edit Group';
+        groupNameInput.value = group.name;
+
+        const selected = new Set();
+
+        for (const lightId of group.hueLightIds ?? []) {
+          selected.add(`hue:${lightId}`);
+        }
+
+        if (group.govee?.id) {
+          selected.add(
+            `govee:${group.govee.id}`,
+          );
+        }
+
+        renderGroupDeviceOptions(selected);
+
+        editor.classList.remove('hidden');
+      }
+
+      function closeEditor() {
+        editor.classList.add('hidden');
+        editingGroupId = null;
+      }
+
+      async function discoverLights() {
+        discoverButton.disabled = true;
+
+        setStatus(
+          'Discovering Hue and Govee lights...',
+        );
+
+        try {
+          discoveredLights =
+            await homebridge.request(
+              '/discover',
+            );
+
+          renderDiscoveredLights();
+          renderGroups();
+
+          setStatus(
+            `Found ${discoveredLights.length} light(s).`,
+          );
+        } catch (error) {
+          setStatus(
+            `Discovery failed: ${error.message}`,
+          );
+        } finally {
+          discoverButton.disabled = false;
+        }
+      }
+
+      async function loadGroups() {
+        try {
+          const result =
+            await homebridge.request(
+              '/groups',
+            );
+
+          groups =
+            Array.isArray(result)
+              ? result
+              : [];
+
+          renderGroups();
+        } catch (error) {
+          setStatus(
+            `Could not load groups: ${error.message}`,
+          );
+        }
+      }
+
+      async function saveGroup() {
+        const name =
+          groupNameInput.value.trim();
+
+        if (!name) {
+          setStatus('Group name is required.');
+          return;
+        }
+
+        const selectedKeys = [
+          ...groupDevicesContainer
+            .querySelectorAll(
+              'input[type="checkbox"]:checked',
+            ),
+        ].map(
+          (checkbox) =>
+            checkbox.value,
+        );
+
+        if (selectedKeys.length === 0) {
+          setStatus(
+            'Select at least one light.',
+          );
+          return;
+        }
+
+        const selectedLights =
+          selectedKeys
+            .map((key) => {
+              const separator =
+                key.indexOf(':');
+
+              const providerId =
+                key.slice(0, separator);
+
+              const id =
+                key.slice(separator + 1);
+
+              return discoveredLights.find(
+                (light) =>
+                  light.providerId === providerId &&
+                  light.id === id,
+              );
+            })
+            .filter(Boolean);
+
+        const hueLightIds =
+          selectedLights
+            .filter(
+              (light) =>
+                light.providerId === 'hue',
+            )
+            .map((light) => light.id);
+
+        const goveeLight =
+          selectedLights.find(
+            (light) =>
+              light.providerId === 'govee',
+          );
+
+        const existingGroup =
+          editingGroupId
+            ? groups.find(
+                (group) =>
+                  group.id === editingGroupId,
+              )
+            : undefined;
+
+        const group = {
+          id:
+            existingGroup?.id ??
+            createGroupId(name),
+          name,
+          hueLightIds,
+        };
+
+        if (goveeLight) {
+          group.govee = {
+            id: goveeLight.id,
+            name: goveeLight.name,
+            model:
+              goveeLight.model ??
+              'unknown',
+            ip:
+              goveeLight.ip ??
+              '',
+            calibrationProfile:
+              goveeLight.model === 'H60A1'
+                ? 'govee-h60a1-vs-hue'
+                : '',
+          };
+        }
+
+        try {
+          groups =
+            await homebridge.request(
+              '/save-group',
+              group,
+            );
+
+          renderGroups();
+          closeEditor();
+
+          setStatus(
+            `Saved group: ${name}`,
+          );
+        } catch (error) {
+          setStatus(
+            `Could not save group: ${error.message}`,
+          );
+        }
+      }
+
+      async function deleteGroup(groupId) {
+        try {
+          groups =
+            await homebridge.request(
+              '/delete-group',
+              {
+                id: groupId,
+              },
+            );
+
+          renderGroups();
+
+          setStatus('Group deleted.');
+        } catch (error) {
+          setStatus(
+            `Could not delete group: ${error.message}`,
+          );
+        }
+      }
+
+      discoverButton.addEventListener(
+        'click',
+        discoverLights,
+      );
+
+      addGroupButton.addEventListener(
+        'click',
+        openNewGroupEditor,
+      );
+
+      saveGroupButton.addEventListener(
+        'click',
+        saveGroup,
+      );
+
+      cancelGroupButton.addEventListener(
+        'click',
+        closeEditor,
+      );
+
+      void loadGroups();
+    })();
+  </script>
+</body>
+</html>
