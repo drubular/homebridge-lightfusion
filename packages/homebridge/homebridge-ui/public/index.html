@@ -423,193 +423,266 @@
       }
 
       async function discoverLights() {
-        discoverButton.disabled = true;
+    discoverButton.disabled = true;
 
+    setStatus(
+      'Finding compatible lights… You can create groups as soon as your available lights are ready.',
+    );
+
+    try {
+      discoveredLights =
+        await homebridge.request(
+          '/discover',
+        );
+
+      await loadGroups();
+
+      renderDiscoveredLights();
+      renderGroups();
+
+      if (discoveredLights.length > 0) {
         setStatus(
-          'Finding compatible lights… You can create groups as soon as your available lights are ready.',
+          `${discoveredLights.length} light(s) found. You can now create or edit groups.`,
         );
-
-        try {
-          discoveredLights =
-            await homebridge.request(
-              '/discover',
-            );
-
-          renderDiscoveredLights();
-          renderGroups();
-
-          if (discoveredLights.length > 0) {
-            setStatus(
-              `${discoveredLights.length} light(s) found. You can now create or edit groups.`,
-            );
-          } else {
-            setStatus(
-              'No compatible lights found. Check your device setup, then select Refresh Devices.',
-            );
-          }
-        } catch (error) {
-          setStatus(
-            `Discovery failed: ${error.message}`,
-          );
-        } finally {
-          discoverButton.disabled = false;
-        }
-      }
-
-      async function loadGroups() {
-        try {
-          const result =
-            await homebridge.request(
-              '/groups',
-            );
-
-          groups =
-            Array.isArray(result)
-              ? result
-              : [];
-
-          renderGroups();
-        } catch (error) {
-          setStatus(
-            `Could not load groups: ${error.message}`,
-          );
-        }
-      }
-
-      async function saveGroup() {
-        const name =
-          groupNameInput.value.trim();
-
-        if (!name) {
-          setStatus('Group name is required.');
-          return;
-        }
-
-        const selectedKeys = [
-          ...groupDevicesContainer
-            .querySelectorAll(
-              'input[type="checkbox"]:checked',
-            ),
-        ].map(
-          (checkbox) =>
-            checkbox.value,
+      } else {
+        setStatus(
+          'No compatible lights found. Check your device setup, then select Refresh Devices.',
         );
+      }
+    } catch (error) {
+      setStatus(
+        `Discovery failed: ${error.message}`,
+      );
+    } finally {
+      discoverButton.disabled = false;
+    }
+  }
 
-        if (selectedKeys.length === 0) {
-          setStatus(
-            'Select at least one light.',
-          );
-          return;
-        }
+  async function getPlatformConfig() {
+    const pluginConfig =
+      await homebridge.getPluginConfig();
 
-        const selectedLights =
-          selectedKeys
-            .map((key) => {
-              const separator =
-                key.indexOf(':');
+    const platform =
+      pluginConfig.find(
+        (entry) =>
+          entry.platform === 'LightFusion',
+      );
 
-              const providerId =
-                key.slice(0, separator);
+    if (!platform) {
+      throw new Error(
+        'LightFusion platform configuration not found.',
+      );
+    }
 
-              const id =
-                key.slice(separator + 1);
+    return {
+      pluginConfig,
+      platform,
+    };
+  }
 
-              return discoveredLights.find(
-                (light) =>
-                  light.providerId === providerId &&
-                  light.id === id,
-              );
-            })
-            .filter(Boolean);
+  async function loadGroups() {
+    try {
+      const {
+        platform,
+      } = await getPlatformConfig();
 
-        const hueLightIds =
-          selectedLights
-            .filter(
-              (light) =>
-                light.providerId === 'hue',
-            )
-            .map((light) => light.id);
+      groups =
+        Array.isArray(platform.groups)
+          ? platform.groups
+          : [];
 
-        const goveeLight =
-          selectedLights.find(
+      renderGroups();
+    } catch (error) {
+      setStatus(
+        `Could not load groups: ${error.message}`,
+      );
+    }
+  }
+
+  async function saveGroupsToHomebridge(
+    updatedGroups,
+  ) {
+    const {
+      pluginConfig,
+      platform,
+    } = await getPlatformConfig();
+
+    platform.groups = updatedGroups;
+
+    await homebridge.updatePluginConfig(
+      pluginConfig,
+    );
+
+    await homebridge.savePluginConfig();
+
+    groups = updatedGroups;
+  }
+
+  async function saveGroup() {
+    const name =
+      groupNameInput.value.trim();
+
+    if (!name) {
+      setStatus('Group name is required.');
+      return;
+    }
+
+    const selectedKeys = [
+      ...groupDevicesContainer
+        .querySelectorAll(
+          'input[type="checkbox"]:checked',
+        ),
+    ].map(
+      (checkbox) =>
+        checkbox.value,
+    );
+
+    if (selectedKeys.length === 0) {
+      setStatus(
+        'Select at least one light.',
+      );
+      return;
+    }
+
+    const selectedLights =
+      selectedKeys
+        .map((key) => {
+          const separator =
+            key.indexOf(':');
+
+          const providerId =
+            key.slice(0, separator);
+
+          const id =
+            key.slice(separator + 1);
+
+          return discoveredLights.find(
             (light) =>
-              light.providerId === 'govee',
+              light.providerId === providerId &&
+              light.id === id,
           );
+        })
+        .filter(Boolean);
 
-        const existingGroup =
-          editingGroupId
-            ? groups.find(
-              (group) =>
-                group.id === editingGroupId,
-            )
-            : undefined;
+    const hueLightIds =
+      selectedLights
+        .filter(
+          (light) =>
+            light.providerId === 'hue',
+        )
+        .map((light) => light.id);
 
-        const group = {
-          id:
-            existingGroup?.id ??
-            createGroupId(name),
-          name,
-          hueLightIds,
-        };
+    const goveeLight =
+      selectedLights.find(
+        (light) =>
+          light.providerId === 'govee',
+      );
 
-        if (goveeLight) {
-          group.govee = {
-            id: goveeLight.id,
-            name: goveeLight.name,
-            model:
-              goveeLight.model ??
-              'unknown',
-            ip:
-              goveeLight.ip ??
-              '',
-            calibrationProfile:
-              goveeLight.model === 'H60A1'
-                ? 'govee-h60a1-vs-hue'
-                : '',
-          };
-        }
+    const existingGroup =
+      editingGroupId
+        ? groups.find(
+          (group) =>
+            group.id === editingGroupId,
+        )
+        : undefined;
 
-        try {
-          groups =
-            await homebridge.request(
-              '/save-group',
-              group,
-            );
+    const group = {
+      id:
+        existingGroup?.id ??
+        createGroupId(name),
+      name,
+      hueLightIds,
+    };
 
-          renderGroups();
-          closeEditor();
+    if (goveeLight) {
+      group.govee = {
+        id: goveeLight.id,
+        name: goveeLight.name,
+        model:
+          goveeLight.model ??
+          'unknown',
+        ip:
+          goveeLight.ip ??
+          '',
+        calibrationProfile:
+          goveeLight.model === 'H60A1'
+            ? 'govee-h60a1-vs-hue'
+            : '',
+      };
+    }
 
-          setStatus(
-            `Saved group: ${name}`,
-          );
-        } catch (error) {
-          setStatus(
-            `Could not save group: ${error.message}`,
-          );
-        }
+    try {
+      const {
+        platform,
+      } = await getPlatformConfig();
+
+      const latestGroups =
+        Array.isArray(platform.groups)
+          ? [...platform.groups]
+          : [];
+
+      const existingIndex =
+        latestGroups.findIndex(
+          (candidate) =>
+            candidate.id === group.id,
+        );
+
+      if (existingIndex >= 0) {
+        latestGroups[existingIndex] =
+          group;
+      } else {
+        latestGroups.push(group);
       }
 
-      async function deleteGroup(groupId) {
-        try {
-          groups =
-            await homebridge.request(
-              '/delete-group',
-              {
-                id: groupId,
-              },
-            );
+      await saveGroupsToHomebridge(
+        latestGroups,
+      );
 
-          renderGroups();
+      renderGroups();
+      closeEditor();
 
-          setStatus('Group deleted.');
-        } catch (error) {
-          setStatus(
-            `Could not delete group: ${error.message}`,
-          );
-        }
-      }
+      setStatus(
+        `Saved group: ${name}`,
+      );
+    } catch (error) {
+      setStatus(
+        `Could not save group: ${error.message}`,
+      );
+    }
+  }
 
-      discoverButton.addEventListener(
+  async function deleteGroup(groupId) {
+    try {
+      const {
+        platform,
+      } = await getPlatformConfig();
+
+      const latestGroups =
+        Array.isArray(platform.groups)
+          ? platform.groups
+          : [];
+
+      const updatedGroups =
+        latestGroups.filter(
+          (group) =>
+            group.id !== groupId,
+        );
+
+      await saveGroupsToHomebridge(
+        updatedGroups,
+      );
+
+      renderGroups();
+
+      setStatus('Group deleted.');
+    } catch (error) {
+      setStatus(
+        `Could not delete group: ${error.message}`,
+      );
+    }
+  }
+
+  discoverButton.addEventListener(
         'click',
         discoverLights,
       );
