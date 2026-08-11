@@ -27,6 +27,34 @@ import { PLATFORM_NAME, PLUGIN_NAME } from './settings.js';
 const DEFAULT_GROUP_NAME = 'LightFusion Color Sync';
 const DEFAULT_GROUP_ID = 'lightfusion:group:default';
 
+interface LightFusionBrightnessMapPoint {
+  input: number;
+  output: number;
+}
+
+interface LightFusionDeviceCalibrationConfig {
+  profile?: string;
+  hueOffset?: number;
+  saturationScale?: number;
+  brightnessScale?: number;
+  brightnessMap?: LightFusionBrightnessMapPoint[];
+  colorTemperatureOffset?: number;
+}
+
+interface LightFusionMemberConfig {
+  providerId: string;
+  lightId: string;
+  name?: string;
+  model?: string;
+  ip?: string;
+  calibration?: LightFusionDeviceCalibrationConfig;
+}
+
+interface LightFusionReferenceConfig {
+  providerId: string;
+  lightId: string;
+}
+
 interface LightFusionGoveeConfig {
   id: string;
   name?: string;
@@ -42,6 +70,18 @@ interface LightFusionGoveeConfig {
 interface LightFusionGroupConfig {
   id: string;
   name: string;
+
+  /*
+   * New generic device configuration.
+   */
+  referenceDevice?: LightFusionReferenceConfig;
+  members?: LightFusionMemberConfig[];
+
+  /*
+   * Legacy group configuration.
+   * Preserved for backward compatibility while
+   * existing installations migrate.
+   */
   hueLightIds: string[];
   govee?: LightFusionGoveeConfig;
 }
@@ -77,46 +117,8 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
 
   private readonly syncEngine = new SyncEngine(
     this.registry,
-    (light: LightReference) => {
-      if (light.providerId !== 'govee') {
-        return undefined;
-      }
-
-      const govee =
-        this.getGoveeConfig(light.lightId);
-
-      if (!govee) {
-        return undefined;
-      }
-
-      const profile =
-        govee.calibrationProfile ===
-          'govee-h60a1-vs-hue'
-          ? GOVEE_H60A1_VS_HUE_PROFILE
-          : undefined;
-
-      if (!profile) {
-        return undefined;
-      }
-      return {
-        ...profile,
-
-        ...(govee.hueOffset !== undefined
-          ? { hueOffset: govee.hueOffset }
-          : {}),
-
-        saturationScale:
-          govee.saturationScale ?? 1,
-
-        brightnessScale:
-          govee.brightnessScale ?? 1,
-
-        colorTemperatureOffset:
-          govee.colorTemperatureOffset ??
-          profile.colorTemperatureOffset ??
-          15,
-      };
-    },
+    (light: LightReference) =>
+      this.getCalibrationProfile(light),
   );
   private readonly groups: LightGroup[] = [];
 
@@ -242,6 +244,122 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
     }
   }
 
+  private getCalibrationProfile(
+    light: LightReference,
+  ) {
+    const member =
+      this.getMemberConfig(light);
+
+    if (member?.calibration) {
+      const calibration =
+        member.calibration;
+
+      const profile =
+        calibration.profile ===
+          'govee-h60a1-vs-hue'
+          ? GOVEE_H60A1_VS_HUE_PROFILE
+          : undefined;
+
+      return {
+        ...(profile ?? {}),
+
+        ...(calibration.hueOffset !== undefined
+          ? { hueOffset: calibration.hueOffset }
+          : {}),
+
+        ...(calibration.saturationScale !== undefined
+          ? {
+            saturationScale:
+              calibration.saturationScale,
+          }
+          : {}),
+
+        ...(calibration.brightnessScale !== undefined
+          ? {
+            brightnessScale:
+              calibration.brightnessScale,
+          }
+          : {}),
+
+        ...(calibration.brightnessMap !== undefined
+          ? {
+            brightnessMap:
+              calibration.brightnessMap,
+          }
+          : {}),
+
+        ...(calibration.colorTemperatureOffset !== undefined
+          ? {
+            colorTemperatureOffset:
+              calibration.colorTemperatureOffset,
+          }
+          : {}),
+      };
+    }
+
+    /*
+     * Legacy Govee calibration fallback.
+     */
+    if (light.providerId !== 'govee') {
+      return undefined;
+    }
+
+    const govee =
+      this.getGoveeConfig(light.lightId);
+
+    if (!govee) {
+      return undefined;
+    }
+
+    const profile =
+      govee.calibrationProfile ===
+        'govee-h60a1-vs-hue'
+        ? GOVEE_H60A1_VS_HUE_PROFILE
+        : undefined;
+
+    if (!profile) {
+      return undefined;
+    }
+
+    return {
+      ...profile,
+
+      ...(govee.hueOffset !== undefined
+        ? { hueOffset: govee.hueOffset }
+        : {}),
+
+      saturationScale:
+        govee.saturationScale ?? 1,
+
+      brightnessScale:
+        govee.brightnessScale ?? 1,
+
+      colorTemperatureOffset:
+        govee.colorTemperatureOffset ??
+        profile.colorTemperatureOffset ??
+        15,
+    };
+  }
+
+  private getMemberConfig(
+    light: LightReference,
+  ): LightFusionMemberConfig | undefined {
+    for (const group of this.config.groups ?? []) {
+      const member =
+        group.members?.find(
+          (candidate) =>
+            candidate.providerId === light.providerId &&
+            candidate.lightId === light.lightId,
+        );
+
+      if (member) {
+        return member;
+      }
+    }
+
+    return undefined;
+  }
+
   private getGoveeConfig(
     lightId: string,
   ): LightFusionGoveeConfig | undefined {
@@ -306,8 +424,20 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
 
   private createGroupMembers(
     groupConfig: LightFusionGroupConfig,
-  ) {
-    const members = [];
+  ): LightReference[] {
+    if (
+      Array.isArray(groupConfig.members) &&
+      groupConfig.members.length > 0
+    ) {
+      return groupConfig.members.map(
+        (member) => ({
+          providerId: member.providerId,
+          lightId: member.lightId,
+        }),
+      );
+    }
+
+    const members: LightReference[] = [];
 
     for (const lightId of groupConfig.hueLightIds) {
       members.push({
