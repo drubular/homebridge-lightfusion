@@ -218,6 +218,15 @@
 
     <div id="group-devices" class="device-list"></div>
 
+    <label>
+      Reference Device
+      <select id="reference-device">
+        <option value="">
+          Select a reference device
+        </option>
+      </select>
+    </label>
+
     <div class="toolbar">
       <button id="save-group-button" type="button">
         Save Group
@@ -269,6 +278,9 @@
 
       const groupDevicesContainer =
         document.getElementById('group-devices');
+
+      const referenceDeviceSelect =
+        document.getElementById('reference-device');
 
       let discoveredLights = [];
       let groups = [];
@@ -441,6 +453,15 @@
           checkbox.checked =
             selectedKeys.has(key);
 
+          checkbox.addEventListener(
+            'change',
+            () => {
+              updateReferenceDeviceOptions(
+                referenceDeviceSelect.value,
+              );
+            },
+          );
+
           label.appendChild(checkbox);
 
           label.append(
@@ -448,6 +469,61 @@
           );
 
           groupDevicesContainer.appendChild(label);
+        }
+      }
+
+      function updateReferenceDeviceOptions(
+        selectedValue = '',
+      ) {
+        const checkedKeys = [
+          ...groupDevicesContainer
+            .querySelectorAll(
+              'input[type="checkbox"]:checked',
+            ),
+        ].map(
+          (checkbox) =>
+            checkbox.value,
+        );
+
+        referenceDeviceSelect.innerHTML =
+          '<option value="">Select a reference device</option>';
+
+        for (const key of checkedKeys) {
+          const separator =
+            key.indexOf(':');
+
+          const providerId =
+            key.slice(0, separator);
+
+          const lightId =
+            key.slice(separator + 1);
+
+          const light = discoveredLights.find(
+            (candidate) =>
+              candidate.providerId === providerId &&
+              candidate.id === lightId,
+          );
+
+          const option =
+            document.createElement('option');
+
+          option.value = key;
+          option.textContent =
+            light?.name ??
+            `${providerId} ${lightId}`;
+
+          referenceDeviceSelect.appendChild(option);
+        }
+
+        if (
+          selectedValue &&
+          checkedKeys.includes(selectedValue)
+        ) {
+          referenceDeviceSelect.value =
+            selectedValue;
+        } else if (checkedKeys.length === 1) {
+          referenceDeviceSelect.value =
+            checkedKeys[0];
         }
       }
 
@@ -464,6 +540,7 @@
         groupNameInput.value = '';
 
         renderGroupDeviceOptions();
+        updateReferenceDeviceOptions();
 
         editor.classList.remove('hidden');
       }
@@ -511,6 +588,13 @@
         }
 
         renderGroupDeviceOptions(selected);
+
+        const referenceKey =
+          group.referenceDevice
+            ? `${group.referenceDevice.providerId}:${group.referenceDevice.lightId}`
+            : '';
+
+        updateReferenceDeviceOptions(referenceKey);
 
         editor.classList.remove('hidden');
       }
@@ -704,6 +788,16 @@
       return;
     }
 
+    if (
+      selectedKeys.length > 1 &&
+      !referenceDeviceSelect.value
+    ) {
+      setStatus(
+        'Select a reference device for this group.',
+      );
+      return;
+    }
+
     const selectedLights =
       selectedKeys
         .map((key) => {
@@ -823,32 +917,28 @@
         };
       });
 
-    const existingReference =
-      existingGroup?.referenceDevice;
-
-    const referenceStillSelected =
-      existingReference &&
-      members.some(
-        (member) =>
-          member.providerId ===
-            existingReference.providerId &&
-          member.lightId ===
-            existingReference.lightId,
-      );
-
-    const firstMember = members[0];
+    const selectedReferenceKey =
+      referenceDeviceSelect.value;
 
     const referenceDevice =
-      referenceStillSelected
-        ? existingReference
-        : firstMember
-          ? {
+      selectedReferenceKey
+        ? (() => {
+          const separator =
+            selectedReferenceKey.indexOf(':');
+
+          return {
             providerId:
-              firstMember.providerId,
+              selectedReferenceKey.slice(
+                0,
+                separator,
+              ),
             lightId:
-              firstMember.lightId,
-          }
-          : undefined;
+              selectedReferenceKey.slice(
+                separator + 1,
+              ),
+          };
+        })()
+        : undefined;
 
     const group = {
       id:
