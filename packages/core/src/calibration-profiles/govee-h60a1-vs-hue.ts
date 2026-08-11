@@ -101,9 +101,9 @@ export const GOVEE_H60A1_VS_HUE_PROFILE: CalibrationProfile = {
 
     brightnessMap: [
     { input: 10, output: 1 },
-    { input: 25, output: 2 },
-    { input: 50, output: 8 },
-    { input: 75, output: 30 },
+    { input: 25, output: 4 },
+    { input: 50, output: 12 },
+    { input: 75, output: 35 },
     { input: 100, output: 100 },
   ],
 
