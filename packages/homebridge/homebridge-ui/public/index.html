@@ -105,9 +105,14 @@
       <button id="add-group-button" type="button">
         Add Group
       </button>
+
+      <button id="connect-hue-button" type="button">
+        Connect Hue Bridge
+      </button>
     </div>
 
     <div id="status" class="status"></div>
+    <div id="hue-status" class="status muted"></div>
   </section>
 
   <section class="section">
@@ -160,6 +165,12 @@
 
       const addGroupButton =
         document.getElementById('add-group-button');
+
+      const connectHueButton =
+        document.getElementById('connect-hue-button');
+
+      const hueStatus =
+        document.getElementById('hue-status');
 
       const saveGroupButton =
         document.getElementById('save-group-button');
@@ -420,6 +431,68 @@
       function closeEditor() {
         editor.classList.add('hidden');
         editingGroupId = null;
+      }
+
+      async function connectHueBridge() {
+        connectHueButton.disabled = true;
+
+        hueStatus.textContent =
+          'Looking for your Hue Bridge...';
+
+        try {
+          const result =
+            await homebridge.request(
+              '/hue/connect',
+            );
+
+          if (
+            result.needsLinkButton
+          ) {
+            hueStatus.textContent =
+              'Press the round button on your Hue Bridge, then click Connect Hue Bridge again.';
+            return;
+          }
+
+          if (
+            !result.connected ||
+            !result.applicationKey
+          ) {
+            throw new Error(
+              result.message ??
+              'Hue Bridge authorization did not complete.',
+            );
+          }
+
+          const {
+            pluginConfig,
+            platform,
+          } = await getPlatformConfig();
+
+          platform.hueBridgeId =
+            result.bridgeId;
+
+          platform.hueBridgeIp =
+            result.bridgeIp;
+
+          platform.hueApplicationKey =
+            result.applicationKey;
+
+          await homebridge.updatePluginConfig(
+            pluginConfig,
+          );
+
+          await homebridge.savePluginConfig();
+
+          hueStatus.textContent =
+            'Hue Bridge connected successfully.';
+
+          await discoverLights();
+        } catch (error) {
+          hueStatus.textContent =
+            `Hue connection failed: ${error.message}`;
+        } finally {
+          connectHueButton.disabled = false;
+        }
       }
 
       async function discoverLights() {
@@ -685,6 +758,11 @@
   discoverButton.addEventListener(
         'click',
         discoverLights,
+      );
+
+      connectHueButton.addEventListener(
+        'click',
+        connectHueBridge,
       );
 
       addGroupButton.addEventListener(
