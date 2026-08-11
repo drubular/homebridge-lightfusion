@@ -17,8 +17,8 @@ export type VirtualLightStateChangeHandler = (
 export class VirtualLight {
   private readonly service: Service;
 
-  private pendingColorState: Partial<LightState> = {};
-  private colorUpdateTimer: NodeJS.Timeout | undefined;
+  private pendingVisualState: Partial<LightState> = {};
+  private visualUpdateTimer: NodeJS.Timeout | undefined;
 
   public constructor(
     private readonly api: API,
@@ -27,8 +27,12 @@ export class VirtualLight {
     private readonly onStateChange: VirtualLightStateChangeHandler,
   ) {
     this.service =
-      this.accessory.getService(this.api.hap.Service.Lightbulb) ??
-      this.accessory.addService(this.api.hap.Service.Lightbulb);
+      this.accessory.getService(
+        this.api.hap.Service.Lightbulb,
+      ) ??
+      this.accessory.addService(
+        this.api.hap.Service.Lightbulb,
+      );
 
     this.configureAccessoryInformation();
     this.configureCharacteristics();
@@ -36,7 +40,9 @@ export class VirtualLight {
 
   private configureAccessoryInformation(): void {
     this.accessory
-      .getService(this.api.hap.Service.AccessoryInformation)
+      .getService(
+        this.api.hap.Service.AccessoryInformation,
+      )
       ?.setCharacteristic(
         this.api.hap.Characteristic.Manufacturer,
         'LightFusion',
@@ -52,106 +58,165 @@ export class VirtualLight {
   }
 
   private configureCharacteristics(): void {
-    const characteristic = this.api.hap.Characteristic;
+    const characteristic =
+      this.api.hap.Characteristic;
 
     this.service
-      .getCharacteristic(characteristic.On)
-      .onGet(() => this.group.state.on)
-      .onSet(async (value: CharacteristicValue) => {
-        await this.onStateChange({
-          on: Boolean(value),
-        });
-      });
+      .getCharacteristic(
+        characteristic.On,
+      )
+      .onGet(
+        () => this.group.state.on,
+      )
+      .onSet(
+        async (
+          value: CharacteristicValue,
+        ) => {
+          await this.onStateChange({
+            on: Boolean(value),
+          });
+        },
+      );
 
     this.service
-      .getCharacteristic(characteristic.Brightness)
-      .onGet(() => this.group.state.brightness)
-      .onSet(async (value: CharacteristicValue) => {
-        await this.onStateChange({
-          brightness: Number(value),
-        });
-      });
+      .getCharacteristic(
+        characteristic.Brightness,
+      )
+      .onGet(
+        () =>
+          this.group.state.brightness,
+      )
+      .onSet(
+        async (
+          value: CharacteristicValue,
+        ) => {
+          this.queueVisualUpdate({
+            brightness: Number(value),
+          });
+        },
+      );
 
     this.service
-      .getCharacteristic(characteristic.Hue)
-      .onGet(() => this.group.state.hue)
-      .onSet(async (value: CharacteristicValue) => {
-        this.queueColorUpdate({
-          hue: Number(value),
-        });
-      });
+      .getCharacteristic(
+        characteristic.Hue,
+      )
+      .onGet(
+        () => this.group.state.hue,
+      )
+      .onSet(
+        async (
+          value: CharacteristicValue,
+        ) => {
+          this.queueVisualUpdate({
+            hue: Number(value),
+          });
+        },
+      );
 
     this.service
-      .getCharacteristic(characteristic.Saturation)
-      .onGet(() => this.group.state.saturation)
-      .onSet(async (value: CharacteristicValue) => {
-        this.queueColorUpdate({
-          saturation: Number(value),
-        });
-      });
+      .getCharacteristic(
+        characteristic.Saturation,
+      )
+      .onGet(
+        () =>
+          this.group.state.saturation,
+      )
+      .onSet(
+        async (
+          value: CharacteristicValue,
+        ) => {
+          this.queueVisualUpdate({
+            saturation: Number(value),
+          });
+        },
+      );
 
     this.service
-      .getCharacteristic(characteristic.ColorTemperature)
-      .onGet(() => this.group.state.colorTemperature)
-      .onSet(async (value: CharacteristicValue) => {
-        this.cancelPendingColorUpdate();
+      .getCharacteristic(
+        characteristic.ColorTemperature,
+      )
+      .onGet(
+        () =>
+          this.group.state
+            .colorTemperature,
+      )
+      .onSet(
+        async (
+          value: CharacteristicValue,
+        ) => {
+          this.cancelPendingVisualUpdate();
 
-        await this.onStateChange({
-          colorTemperature: Number(value),
-        });
-      });
-    this.service
-      .getCharacteristic(characteristic.ColorTemperature)
-      .onGet(() => this.group.state.colorTemperature)
-      .onSet(async (value: CharacteristicValue) => {
-        console.log(
-          '[LightFusion Debug] ColorTemperature:',
-          Number(value),
-        );
-
-        this.cancelPendingColorUpdate();
-
-        await this.onStateChange({
-          colorTemperature: Number(value),
-        });
-      });
+          await this.onStateChange({
+            colorTemperature:
+              Number(value),
+          });
+        },
+      );
   }
 
-  private queueColorUpdate(
+  private queueVisualUpdate(
     state: Partial<LightState>,
   ): void {
-    this.pendingColorState = {
-      ...this.pendingColorState,
+    this.pendingVisualState = {
+      ...this.pendingVisualState,
       ...state,
     };
 
-    if (this.colorUpdateTimer) {
-      clearTimeout(this.colorUpdateTimer);
+    if (this.visualUpdateTimer) {
+      clearTimeout(
+        this.visualUpdateTimer,
+      );
     }
 
-    this.colorUpdateTimer = setTimeout(() => {
-      const stateToSend = {
-        hue:
-          this.pendingColorState.hue ??
-          this.group.state.hue,
-        saturation:
-          this.pendingColorState.saturation ??
-          this.group.state.saturation,
-      };
+    this.visualUpdateTimer =
+      setTimeout(() => {
+        const stateToSend: Partial<LightState> = {};
 
-      this.pendingColorState = {};
-      this.colorUpdateTimer = undefined;
+        if (
+          this.pendingVisualState
+            .brightness !== undefined
+        ) {
+          stateToSend.brightness =
+            this.pendingVisualState
+              .brightness;
+        }
 
-      void this.onStateChange(stateToSend);
-    }, 100);
+        if (
+          this.pendingVisualState.hue !==
+          undefined ||
+          this.pendingVisualState
+            .saturation !== undefined
+        ) {
+          stateToSend.hue =
+            this.pendingVisualState.hue ??
+            this.group.state.hue;
+
+          stateToSend.saturation =
+            this.pendingVisualState
+              .saturation ??
+            this.group.state.saturation;
+        }
+
+        this.pendingVisualState = {};
+        this.visualUpdateTimer =
+          undefined;
+
+        void this.onStateChange(
+          stateToSend,
+        );
+      }, 150);
   }
 
-  private cancelPendingColorUpdate(): void {
-    if (this.colorUpdateTimer) {
-      clearTimeout(this.colorUpdateTimer);
-      this.colorUpdateTimer = undefined;
+  private cancelPendingVisualUpdate(): void {
+    if (this.visualUpdateTimer) {
+      clearTimeout(
+        this.visualUpdateTimer,
+      );
+
+      this.visualUpdateTimer =
+        undefined;
     }
 
-    this.pendingColorState = {};
+    this.pendingVisualState = {};
   }
 }
