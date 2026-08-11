@@ -485,6 +485,179 @@
         }
       }
 
+      function getDefaultBrightnessMap(light) {
+        if (
+          light?.providerId === 'govee' &&
+          light?.model === 'H60A1'
+        ) {
+          return [
+            { input: 10, output: 1 },
+            { input: 25, output: 4 },
+            { input: 50, output: 12 },
+            { input: 75, output: 35 },
+            { input: 100, output: 100 },
+          ];
+        }
+
+        return [
+          { input: 10, output: 10 },
+          { input: 25, output: 25 },
+          { input: 50, output: 50 },
+          { input: 75, output: 75 },
+          { input: 100, output: 100 },
+        ];
+      }
+
+      function renderCalibrationControls() {
+        calibrationDevicesContainer.innerHTML = '';
+
+        const checkedKeys = [
+          ...groupDevicesContainer
+            .querySelectorAll(
+              'input[type="checkbox"]:checked',
+            ),
+        ].map(
+          (checkbox) =>
+            checkbox.value,
+        );
+
+        const referenceKey =
+          referenceDeviceSelect.value;
+
+        const existingGroup =
+          editingGroupId
+            ? groups.find(
+              (group) =>
+                group.id === editingGroupId,
+            )
+            : undefined;
+
+        for (const key of checkedKeys) {
+          if (key === referenceKey) {
+            continue;
+          }
+
+          const separator =
+            key.indexOf(':');
+
+          const providerId =
+            key.slice(0, separator);
+
+          const lightId =
+            key.slice(separator + 1);
+
+          const light = discoveredLights.find(
+            (candidate) =>
+              candidate.providerId === providerId &&
+              candidate.id === lightId,
+          );
+
+          if (!light) {
+            continue;
+          }
+
+          const existingMember =
+            existingGroup?.members?.find(
+              (member) =>
+                member.providerId === providerId &&
+                member.lightId === lightId,
+            );
+
+          const brightnessMap =
+            existingMember?.calibration?.brightnessMap ??
+            getDefaultBrightnessMap(light);
+
+          const card =
+            document.createElement('div');
+
+          card.className = 'device';
+
+          const rows = brightnessMap
+            .map(
+              (point) => `
+                <label>
+                  ${point.input}% reference
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    data-calibration-device="${key}"
+                    data-calibration-input="${point.input}"
+                    value="${point.output}"
+                  >
+                </label>
+              `,
+            )
+            .join('');
+
+          card.innerHTML = `
+            <strong>${light.name}</strong><br>
+            <small>
+              ${light.providerId}
+              ${light.model ? ` · ${light.model}` : ''}
+            </small>
+
+            <div class="device-list">
+              ${rows}
+            </div>
+
+            <button
+              type="button"
+              data-reset-calibration="${key}"
+            >
+              Reset to Model Defaults
+            </button>
+          `;
+
+          calibrationDevicesContainer.appendChild(card);
+        }
+
+        calibrationDevicesContainer
+          .querySelectorAll(
+            '[data-reset-calibration]',
+          )
+          .forEach((button) => {
+            button.addEventListener(
+              'click',
+              () => {
+                const key =
+                  button.dataset.resetCalibration;
+
+                const separator =
+                  key.indexOf(':');
+
+                const providerId =
+                  key.slice(0, separator);
+
+                const lightId =
+                  key.slice(separator + 1);
+
+                const light = discoveredLights.find(
+                  (candidate) =>
+                    candidate.providerId === providerId &&
+                    candidate.id === lightId,
+                );
+
+                const defaults =
+                  getDefaultBrightnessMap(light);
+
+                for (const point of defaults) {
+                  const input =
+                    calibrationDevicesContainer
+                      .querySelector(
+                        `[data-calibration-device="${key}"][data-calibration-input="${point.input}"]`,
+                      );
+
+                  if (input) {
+                    input.value = point.output;
+                  }
+                }
+              },
+            );
+          });
+      }
+
       function updateReferenceDeviceOptions(
         selectedValue = '',
       ) {
@@ -811,6 +984,28 @@
       return;
     }
 
+    const calibrationInputs = [
+      ...calibrationDevicesContainer
+        .querySelectorAll(
+          '[data-calibration-device]',
+        ),
+    ];
+
+    for (const input of calibrationInputs) {
+      const value = Number(input.value);
+
+      if (
+        !Number.isFinite(value) ||
+        value < 0 ||
+        value > 100
+      ) {
+        setStatus(
+          'Brightness calibration values must be between 0 and 100.',
+        );
+        return;
+      }
+    }
+
     const selectedLights =
       selectedKeys
         .map((key) => {
@@ -905,7 +1100,13 @@
               member.lightId === light.id,
           );
 
-        const calibration =
+        const key =
+          `${light.providerId}:${light.id}`;
+
+        const isReference =
+          key === referenceDeviceSelect.value;
+
+        const existingCalibration =
           existingMember?.calibration ??
           (
             light.providerId === 'govee' &&
@@ -913,6 +1114,35 @@
               ? legacyGoveeCalibration
               : undefined
           );
+
+        let calibration =
+          existingCalibration;
+
+        if (!isReference) {
+          const brightnessInputs = [
+            ...calibrationDevicesContainer
+              .querySelectorAll(
+                `[data-calibration-device="${key}"]`,
+              ),
+          ];
+
+          if (brightnessInputs.length > 0) {
+            const brightnessMap =
+              brightnessInputs.map(
+                (input) => ({
+                  input: Number(
+                    input.dataset.calibrationInput,
+                  ),
+                  output: Number(input.value),
+                }),
+              );
+
+            calibration = {
+              ...(existingCalibration ?? {}),
+              brightnessMap,
+            };
+          }
+        }
 
         return {
           providerId: light.providerId,
@@ -924,9 +1154,11 @@
           ...(light.ip
             ? { ip: light.ip }
             : {}),
-          ...(calibration
-            ? { calibration }
-            : {}),
+          ...(
+            !isReference && calibration
+              ? { calibration }
+              : {}
+          ),
         };
       });
 
