@@ -5,6 +5,11 @@ export interface HueCalibrationPoint {
   output: number;
 }
 
+export interface BrightnessCalibrationPoint {
+  input: number;
+  output: number;
+}
+
 export interface LowSaturationCalibration {
   threshold: number;
   points: LowSaturationCalibrationPoint[];
@@ -36,6 +41,7 @@ export interface CalibrationProfile {
   colorMap?: ColorCalibration;
   saturationScale?: number;
   brightnessScale?: number;
+  brightnessMap?: BrightnessCalibrationPoint[];
   colorTemperatureOffset?: number;
 }
 
@@ -175,6 +181,73 @@ function interpolateHue(
   return normalizeHue(
     last.output + outputDelta * progress,
   );
+}
+
+function interpolateBrightness(
+  brightness: number,
+  points: BrightnessCalibrationPoint[],
+): number {
+  if (points.length === 0) {
+    return brightness;
+  }
+
+  const sorted = [...points]
+    .map((point) => ({
+      input: clamp(point.input, 0, 100),
+      output: clamp(point.output, 0, 100),
+    }))
+    .sort((a, b) => a.input - b.input);
+
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+
+  if (!first || !last) {
+    return brightness;
+  }
+
+  if (brightness <= first.input) {
+    return first.output;
+  }
+
+  if (brightness >= last.input) {
+    return last.output;
+  }
+
+  for (
+    let index = 0;
+    index < sorted.length - 1;
+    index += 1
+  ) {
+    const start = sorted[index];
+    const end = sorted[index + 1];
+
+    if (!start || !end) {
+      continue;
+    }
+
+    if (
+      brightness >= start.input &&
+      brightness <= end.input
+    ) {
+      const range = end.input - start.input;
+
+      if (range === 0) {
+        return start.output;
+      }
+
+      const progress =
+        (brightness - start.input) / range;
+
+      return clamp(
+        start.output +
+          (end.output - start.output) * progress,
+        0,
+        100,
+      );
+    }
+  }
+
+  return brightness;
 }
 
 function applyLowSaturationCalibration(
@@ -430,15 +503,27 @@ export function applyCalibration(
   }
 
   if (
-    calibrated.brightness !== undefined &&
-    profile.brightnessScale !== undefined
+    calibrated.brightness !== undefined
   ) {
-    calibrated.brightness = clamp(
-      calibrated.brightness *
-      profile.brightnessScale,
-      0,
-      100,
-    );
+    if (
+      profile.brightnessMap !== undefined &&
+      profile.brightnessMap.length > 0
+    ) {
+      calibrated.brightness =
+        interpolateBrightness(
+          calibrated.brightness,
+          profile.brightnessMap,
+        );
+    } else if (
+      profile.brightnessScale !== undefined
+    ) {
+      calibrated.brightness = clamp(
+        calibrated.brightness *
+        profile.brightnessScale,
+        0,
+        100,
+      );
+    }
   }
 
   if (

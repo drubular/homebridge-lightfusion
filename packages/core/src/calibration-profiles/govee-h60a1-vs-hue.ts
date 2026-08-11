@@ -99,5 +99,13 @@ export const GOVEE_H60A1_VS_HUE_PROFILE: CalibrationProfile = {
         ],
     },
 
-    colorTemperatureOffset: 15,
+    brightnessMap: [
+    { input: 10, output: 2 },
+    { input: 25, output: 10 },
+    { input: 50, output: 28 },
+    { input: 75, output: 62 },
+    { input: 100, output: 100 },
+  ],
+
+  colorTemperatureOffset: 15,
 };

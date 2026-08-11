@@ -38,6 +38,52 @@ test('scales brightness and clamps to 100', () => {
   );
 });
 
+test('applies exact brightness calibration point', () => {
+  assert.deepEqual(
+    applyCalibration(
+      { brightness: 50 },
+      {
+        brightnessMap: [
+          { input: 25, output: 10 },
+          { input: 50, output: 28 },
+          { input: 75, output: 62 },
+        ],
+      },
+    ),
+    { brightness: 28 },
+  );
+});
+
+test('interpolates brightness calibration points', () => {
+  assert.deepEqual(
+    applyCalibration(
+      { brightness: 37.5 },
+      {
+        brightnessMap: [
+          { input: 25, output: 10 },
+          { input: 50, output: 28 },
+        ],
+      },
+    ),
+    { brightness: 19 },
+  );
+});
+
+test('brightness map takes precedence over brightness scale', () => {
+  assert.deepEqual(
+    applyCalibration(
+      { brightness: 50 },
+      {
+        brightnessScale: 2,
+        brightnessMap: [
+          { input: 50, output: 28 },
+        ],
+      },
+    ),
+    { brightness: 28 },
+  );
+});
+
 test('offsets color temperature and clamps to range', () => {
   assert.deepEqual(
     applyCalibration(
