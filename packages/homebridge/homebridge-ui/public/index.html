@@ -227,6 +227,16 @@
       </select>
     </label>
 
+    <div id="calibration-section" class="section">
+      <h4>Calibration</h4>
+      <p class="muted">
+        Adjust non-reference devices so brightness and color
+        more closely match the reference device.
+      </p>
+
+      <div id="calibration-devices"></div>
+    </div>
+
     <div class="toolbar">
       <button id="save-group-button" type="button">
         Save Group
@@ -281,6 +291,9 @@
 
       const referenceDeviceSelect =
         document.getElementById('reference-device');
+
+      const calibrationDevicesContainer =
+        document.getElementById('calibration-devices');
 
       let discoveredLights = [];
       let groups = [];
