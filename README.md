@@ -1,5 +1,9 @@
 # LightFusion
 
+<p align="center">
+  <img src="assets/lightfusion-logo.png" alt="LightFusion" width="500">
+</p>
+
 LightFusion is an open-source lighting synchronization and calibration platform. Its first interface is a Homebridge plugin that provides unified HomeKit control of mixed-brand lights.
 
 The project is designed to make lights from different manufacturers behave like one unified HomeKit lighting group, while correcting differences in color, brightness, and white temperature.
@@ -11,21 +15,23 @@ The project is designed to make lights from different manufacturers behave like 
 - Virtual HomeKit light controllers
 - Raspberry Pi and standard Homebridge installations
 
-## Planned Features
+## Current Features
 
-- Unified on/off control
-- Synchronized brightness
-- Synchronized color
+- Unified on/off control across mixed-brand lights
+- Synchronized brightness and color
 - Synchronized white temperature
-- Per-device color calibration
-- Per-device brightness calibration
-- Multiple lighting groups
-- Homebridge configuration interface
+- Per-device color and brightness calibration
+- Multiple configurable lighting groups
+- Virtual HomeKit light controllers
+- Homebridge custom configuration interface
+- Automatic Philips Hue Bridge discovery
+- Govee LAN device discovery
 - Local network operation where supported
+- Siri and Apple Home control
 
 ## Project Status
 
-LightFusion is currently in early development.
+LightFusion is under active development. The core synchronization engine and Homebridge integration are functional and being expanded through real-world testing.
 
 The initial implementation is being tested with:
 
