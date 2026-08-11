@@ -355,30 +355,53 @@
 
           const deviceNames = [];
 
-          for (const lightId of group.hueLightIds ?? []) {
-            const light = discoveredLights.find(
-              (candidate) =>
-                candidate.providerId === 'hue' &&
-                candidate.id === lightId,
-            );
+          if (
+            Array.isArray(group.members) &&
+            group.members.length > 0
+          ) {
+            for (const member of group.members) {
+              const light = discoveredLights.find(
+                (candidate) =>
+                  candidate.providerId ===
+                    member.providerId &&
+                  candidate.id ===
+                    member.lightId,
+              );
 
-            deviceNames.push(
-              light?.name ?? `Hue ${lightId}`,
-            );
-          }
+              deviceNames.push(
+                light?.name ??
+                member.name ??
+                `${member.providerId} ${member.lightId}`,
+              );
+            }
+          } else {
+            for (
+              const lightId of group.hueLightIds ?? []
+            ) {
+              const light = discoveredLights.find(
+                (candidate) =>
+                  candidate.providerId === 'hue' &&
+                  candidate.id === lightId,
+              );
 
-          if (group.govee?.id) {
-            const light = discoveredLights.find(
-              (candidate) =>
-                candidate.providerId === 'govee' &&
-                candidate.id === group.govee.id,
-            );
+              deviceNames.push(
+                light?.name ?? `Hue ${lightId}`,
+              );
+            }
 
-            deviceNames.push(
-              light?.name ??
-              group.govee.name ??
-              group.govee.id,
-            );
+            if (group.govee?.id) {
+              const light = discoveredLights.find(
+                (candidate) =>
+                  candidate.providerId === 'govee' &&
+                  candidate.id === group.govee.id,
+              );
+
+              deviceNames.push(
+                light?.name ??
+                group.govee.name ??
+                group.govee.id,
+              );
+            }
           }
 
           item.innerHTML = `
