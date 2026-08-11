@@ -194,27 +194,51 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
       this.logger.warn('Hue provider not configured');
     }
 
-    const configuredGoveeLights =
+    const configuredGoveeLights:
+      LightFusionGoveeConfig[] =
       this.config.groups && this.config.groups.length > 0
-        ? this.config.groups
-          .map((group) => group.govee)
-          .filter(
-            (
-              govee,
-            ): govee is LightFusionGoveeConfig =>
-              govee !== undefined,
-          )
+        ? this.config.groups.flatMap(
+          (group): LightFusionGoveeConfig[] => {
+            if (
+              Array.isArray(group.members) &&
+              group.members.length > 0
+            ) {
+              return group.members
+                .filter(
+                  (member) =>
+                    member.providerId === 'govee' &&
+                    member.ip !== undefined,
+                )
+                .map(
+                  (member): LightFusionGoveeConfig => ({
+                    id: member.lightId,
+                    ...(member.name
+                      ? { name: member.name }
+                      : {}),
+                    ...(member.model
+                      ? { model: member.model }
+                      : {}),
+                    ip: member.ip as string,
+                  }),
+                );
+            }
+
+            return group.govee
+              ? [group.govee]
+              : [];
+          },
+        )
         : this.config.goveeIp &&
           this.config.goveeLightId
           ? [
             {
               id: this.config.goveeLightId,
-              name:
-                this.config.goveeName ??
-                'Govee Light',
-              model:
-                this.config.goveeModel ??
-                'unknown',
+              ...(this.config.goveeName
+                ? { name: this.config.goveeName }
+                : {}),
+              ...(this.config.goveeModel
+                ? { model: this.config.goveeModel }
+                : {}),
               ip: this.config.goveeIp,
             },
           ]

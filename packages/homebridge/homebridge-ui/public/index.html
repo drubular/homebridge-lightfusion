@@ -484,14 +484,30 @@
 
         const selected = new Set();
 
-        for (const lightId of group.hueLightIds ?? []) {
-          selected.add(`hue:${lightId}`);
-        }
+        if (
+          Array.isArray(group.members) &&
+          group.members.length > 0
+        ) {
+          for (const member of group.members) {
+            selected.add(
+              `${member.providerId}:${member.lightId}`,
+            );
+          }
+        } else {
+          /*
+           * Legacy group format.
+           */
+          for (
+            const lightId of group.hueLightIds ?? []
+          ) {
+            selected.add(`hue:${lightId}`);
+          }
 
-        if (group.govee?.id) {
-          selected.add(
-            `govee:${group.govee.id}`,
-          );
+          if (group.govee?.id) {
+            selected.add(
+              `govee:${group.govee.id}`,
+            );
+          }
         }
 
         renderGroupDeviceOptions(selected);
@@ -708,20 +724,6 @@
         })
         .filter(Boolean);
 
-    const hueLightIds =
-      selectedLights
-        .filter(
-          (light) =>
-            light.providerId === 'hue',
-        )
-        .map((light) => light.id);
-
-    const goveeLight =
-      selectedLights.find(
-        (light) =>
-          light.providerId === 'govee',
-      );
-
     const existingGroup =
       editingGroupId
         ? groups.find(
@@ -730,30 +732,134 @@
         )
         : undefined;
 
+    const existingMembers =
+      Array.isArray(existingGroup?.members)
+        ? existingGroup.members
+        : [];
+
+    const legacyGoveeCalibration =
+      existingGroup?.govee
+        ? {
+          profile:
+            existingGroup.govee
+              .calibrationProfile ??
+            (
+              existingGroup.govee.model ===
+                'H60A1'
+                ? 'govee-h60a1-vs-hue'
+                : ''
+            ),
+
+          ...(existingGroup.govee
+            .hueOffset !== undefined
+            ? {
+              hueOffset:
+                existingGroup.govee
+                  .hueOffset,
+            }
+            : {}),
+
+          ...(existingGroup.govee
+            .saturationScale !== undefined
+            ? {
+              saturationScale:
+                existingGroup.govee
+                  .saturationScale,
+            }
+            : {}),
+
+          ...(existingGroup.govee
+            .brightnessScale !== undefined
+            ? {
+              brightnessScale:
+                existingGroup.govee
+                  .brightnessScale,
+            }
+            : {}),
+
+          ...(existingGroup.govee
+            .colorTemperatureOffset !== undefined
+            ? {
+              colorTemperatureOffset:
+                existingGroup.govee
+                  .colorTemperatureOffset,
+            }
+            : {}),
+        }
+        : undefined;
+
+    const members =
+      selectedLights.map((light) => {
+        const existingMember =
+          existingMembers.find(
+            (member) =>
+              member.providerId ===
+                light.providerId &&
+              member.lightId === light.id,
+          );
+
+        const calibration =
+          existingMember?.calibration ??
+          (
+            light.providerId === 'govee' &&
+            existingGroup?.govee?.id === light.id
+              ? legacyGoveeCalibration
+              : undefined
+          );
+
+        return {
+          providerId: light.providerId,
+          lightId: light.id,
+          name: light.name,
+          ...(light.model
+            ? { model: light.model }
+            : {}),
+          ...(light.ip
+            ? { ip: light.ip }
+            : {}),
+          ...(calibration
+            ? { calibration }
+            : {}),
+        };
+      });
+
+    const existingReference =
+      existingGroup?.referenceDevice;
+
+    const referenceStillSelected =
+      existingReference &&
+      members.some(
+        (member) =>
+          member.providerId ===
+            existingReference.providerId &&
+          member.lightId ===
+            existingReference.lightId,
+      );
+
+    const firstMember = members[0];
+
+    const referenceDevice =
+      referenceStillSelected
+        ? existingReference
+        : firstMember
+          ? {
+            providerId:
+              firstMember.providerId,
+            lightId:
+              firstMember.lightId,
+          }
+          : undefined;
+
     const group = {
       id:
         existingGroup?.id ??
         createGroupId(name),
       name,
-      hueLightIds,
+      members,
+      ...(referenceDevice
+        ? { referenceDevice }
+        : {}),
     };
-
-    if (goveeLight) {
-      group.govee = {
-        id: goveeLight.id,
-        name: goveeLight.name,
-        model:
-          goveeLight.model ??
-          'unknown',
-        ip:
-          goveeLight.ip ??
-          '',
-        calibrationProfile:
-          goveeLight.model === 'H60A1'
-            ? 'govee-h60a1-vs-hue'
-            : '',
-      };
-    }
 
     try {
       const {
