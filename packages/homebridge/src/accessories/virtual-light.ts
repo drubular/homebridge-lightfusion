@@ -90,6 +90,11 @@ export class VirtualLight {
         async (
           value: CharacteristicValue,
         ) => {
+          console.log(
+            '[LightFusion Debug] Brightness:',
+            Number(value),
+          );
+
           this.queueVisualUpdate({
             brightness: Number(value),
           });
@@ -107,6 +112,11 @@ export class VirtualLight {
         async (
           value: CharacteristicValue,
         ) => {
+          console.log(
+            '[LightFusion Debug] Hue:',
+            Number(value),
+          );
+
           this.queueVisualUpdate({
             hue: Number(value),
           });
@@ -125,6 +135,11 @@ export class VirtualLight {
         async (
           value: CharacteristicValue,
         ) => {
+          console.log(
+            '[LightFusion Debug] Saturation:',
+            Number(value),
+          );
+
           this.queueVisualUpdate({
             saturation: Number(value),
           });
