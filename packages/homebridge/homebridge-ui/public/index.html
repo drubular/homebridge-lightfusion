@@ -47,7 +47,55 @@
 
     button {
       cursor: pointer;
-      padding: 9px 14px;
+      padding: 10px 15px;
+      border: 1px solid rgba(0, 0, 0, 0.14);
+      border-radius: 8px;
+      font-weight: 600;
+      transition:
+        transform 120ms ease,
+        box-shadow 120ms ease,
+        opacity 120ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    #discover-button {
+      background: #f4f4f5;
+      color: #222;
+    }
+
+    #add-group-button {
+      background: #3263a8;
+      color: #fff;
+      border-color: #3263a8;
+    }
+
+    #connect-hue-button {
+      color: #fff;
+      border: none;
+      background:
+        linear-gradient(
+          90deg,
+          #ff4d4d,
+          #ff9f1c,
+          #ffd60a,
+          #2ec4b6,
+          #3a86ff,
+          #8338ec
+        );
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+    }
+
+    #connect-hue-button:hover {
+      opacity: 0.92;
     }
 
     input[type="text"] {
@@ -115,8 +163,8 @@
   </div>
 
   <p class="muted">
-    Create synchronized virtual lighting groups from
-    compatible devices.
+    Group, synchronize, and calibrate lights across different brands
+    for consistent color, brightness, and unified control.
   </p>
 
   <section class="section">
