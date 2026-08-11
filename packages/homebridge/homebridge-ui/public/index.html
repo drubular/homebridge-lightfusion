@@ -472,6 +472,7 @@
               updateReferenceDeviceOptions(
                 referenceDeviceSelect.value,
               );
+              renderCalibrationControls();
             },
           );
 
@@ -781,6 +782,7 @@
             : '';
 
         updateReferenceDeviceOptions(referenceKey);
+        renderCalibrationControls();
 
         editor.classList.remove('hidden');
       }
@@ -1275,6 +1277,13 @@
       connectHueButton.addEventListener(
         'click',
         connectHueBridge,
+      );
+
+      referenceDeviceSelect.addEventListener(
+        'change',
+        () => {
+          renderCalibrationControls();
+        },
       );
 
       addGroupButton.addEventListener(

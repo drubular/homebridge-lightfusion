@@ -15,98 +15,136 @@
       "hueBridgeIp": {
         "title": "Hue Bridge IP",
         "type": "string",
-        "placeholder": "192.168.1.100",
-        "required": true
+        "placeholder": "192.168.1.100"
       },
       "hueApplicationKey": {
         "title": "Hue Application Key",
-        "type": "string",
-        "required": true
+        "type": "string"
       },
       "groups": {
         "title": "Light Groups",
         "type": "array",
-        "required": true,
         "items": {
           "type": "object",
           "properties": {
             "id": {
               "title": "Group ID",
               "type": "string",
-              "placeholder": "living-room-color-sync",
               "required": true
             },
             "name": {
               "title": "HomeKit Name",
               "type": "string",
-              "placeholder": "Living Room Color Sync",
               "required": true
             },
+            "referenceDevice": {
+              "title": "Reference Device",
+              "type": "object",
+              "properties": {
+                "providerId": {
+                  "type": "string"
+                },
+                "lightId": {
+                  "type": "string"
+                }
+              }
+            },
+            "members": {
+              "title": "Group Members",
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "providerId": {
+                    "type": "string"
+                  },
+                  "lightId": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "model": {
+                    "type": "string"
+                  },
+                  "ip": {
+                    "type": "string"
+                  },
+                  "calibration": {
+                    "title": "Device Calibration",
+                    "type": "object",
+                    "properties": {
+                      "profile": {
+                        "type": "string"
+                      },
+                      "hueOffset": {
+                        "type": "number"
+                      },
+                      "saturationScale": {
+                        "type": "number"
+                      },
+                      "brightnessScale": {
+                        "type": "number"
+                      },
+                      "brightnessMap": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "input": {
+                              "type": "number"
+                            },
+                            "output": {
+                              "type": "number"
+                            }
+                          }
+                        }
+                      },
+                      "colorTemperatureOffset": {
+                        "type": "number"
+                      }
+                    }
+                  }
+                }
+              }
+            },
+
             "hueLightIds": {
-              "title": "Hue Light IDs",
+              "title": "Legacy Hue Light IDs",
               "type": "array",
               "items": {
                 "type": "string"
-              },
-              "required": true
+              }
             },
             "govee": {
-              "title": "Govee Light",
+              "title": "Legacy Govee Light",
               "type": "object",
               "properties": {
                 "id": {
-                  "title": "Light ID",
-                  "type": "string",
-                  "placeholder": "livingroom-big-light",
-                  "required": true
+                  "type": "string"
                 },
                 "name": {
-                  "title": "Light Name",
-                  "type": "string",
-                  "placeholder": "Living Room Big Light"
+                  "type": "string"
                 },
                 "model": {
-                  "title": "Model",
-                  "type": "string",
-                  "placeholder": "H60A1"
+                  "type": "string"
                 },
                 "ip": {
-                  "title": "IP Address",
-                  "type": "string",
-                  "placeholder": "192.168.1.120",
-                  "required": true
+                  "type": "string"
                 },
                 "calibrationProfile": {
-                  "title": "Calibration Profile",
-                  "type": "string",
-                  "oneOf": [
-                    {
-                      "title": "None",
-                      "enum": [""]
-                    },
-                    {
-                      "title": "Govee H60A1 vs Philips Hue",
-                      "enum": ["govee-h60a1-vs-hue"]
-                    }
-                  ],
-                  "default": ""
+                  "type": "string"
                 },
                 "hueOffset": {
-                  "title": "Hue Offset",
                   "type": "number"
                 },
                 "saturationScale": {
-                  "title": "Saturation Scale",
-                  "type": "number",
-                  "default": 1
+                  "type": "number"
                 },
                 "brightnessScale": {
-                  "title": "Brightness Scale",
-                  "type": "number",
-                  "default": 1
+                  "type": "number"
                 },
                 "colorTemperatureOffset": {
-                  "title": "Color Temperature Offset",
                   "type": "number"
                 }
               }
