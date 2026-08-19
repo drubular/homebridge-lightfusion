@@ -1,6 +1,6 @@
 {
   "name": "lightfusion-core",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "description": "Reusable synchronization and calibration engine for LightFusion",
   "type": "module",

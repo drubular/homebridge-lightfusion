@@ -7,7 +7,6 @@ import {
 
 import {
   HueProvider,
-  discoverGoveeDevices,
   discoverHueBridges,
 } from 'lightfusion-core';
 
@@ -294,30 +293,58 @@ class LightFusionUiServer extends HomebridgePluginUiServer {
         }
       }
 
-      const goveeDevices =
-        await discoverGoveeDevices(
-          5000,
-        );
+      const goveeDevices = [];
 
-      for (
-        const device of
-        goveeDevices
-      ) {
-        for (
-          const group of
-          platform.groups ?? []
-        ) {
-          if (
-            group.govee?.id ===
-              device.id &&
-            group.govee.ip !==
-              device.ip
-          ) {
-            group.govee.ip =
-              device.ip;
+      if (platform.goveeApiKey) {
+        try {
+          const response = await fetch(
+            'https://openapi.api.govee.com/router/api/v1/user/devices',
+            {
+              headers: {
+                'Govee-API-Key':
+                  platform.goveeApiKey,
+              },
+            },
+          );
 
-            configChanged = true;
+          if (!response.ok) {
+            throw new Error(
+              `Govee API returned HTTP ${response.status}`,
+            );
           }
+
+          const result =
+            await response.json();
+
+          const accountDevices =
+            Array.isArray(result.data)
+              ? result.data
+              : [];
+
+          for (
+            const device of
+            accountDevices
+          ) {
+            if (
+              !device?.device ||
+              !device?.sku ||
+              device.sku ===
+                'SameModeGroup'
+            ) {
+              continue;
+            }
+
+            goveeDevices.push({
+              id: device.device,
+              model: device.sku,
+              name:
+                device.deviceName ??
+                `Govee ${device.sku}`,
+            });
+          }
+        } catch {
+          // Govee API discovery failure should
+          // not stop Hue discovery.
         }
       }
 
@@ -330,9 +357,8 @@ class LightFusionUiServer extends HomebridgePluginUiServer {
               configuredGoveeNames.get(
                 device.id,
               ) ??
-              `Govee ${device.model}`,
+              device.name,
             model: device.model,
-            ip: device.ip,
           }),
         ),
       );

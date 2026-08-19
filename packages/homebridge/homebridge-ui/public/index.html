@@ -98,7 +98,8 @@
       opacity: 0.92;
     }
 
-    input[type="text"] {
+    input[type="text"],
+    input[type="password"] {
       width: 100%;
       box-sizing: border-box;
       padding: 8px;
@@ -182,8 +183,27 @@
       </button>
     </div>
 
+    <div style="max-width: 520px; margin-bottom: 16px;">
+      <label>
+        Govee API Key
+        <input
+          id="govee-api-key"
+          type="password"
+          placeholder="Paste your Govee API key"
+          autocomplete="off"
+        >
+      </label>
+
+      <div class="toolbar" style="margin-top: 10px;">
+        <button id="save-govee-button" type="button">
+          Connect Govee
+        </button>
+      </div>
+    </div>
+
     <div id="status" class="status"></div>
     <div id="hue-status" class="status muted"></div>
+    <div id="govee-status" class="status muted"></div>
   </section>
 
   <section class="section">
@@ -261,6 +281,15 @@
 
       const hueStatus =
         document.getElementById('hue-status');
+
+      const goveeApiKeyInput =
+        document.getElementById('govee-api-key');
+
+      const saveGoveeButton =
+        document.getElementById('save-govee-button');
+
+      const goveeStatus =
+        document.getElementById('govee-status');
 
       const saveGroupButton =
         document.getElementById('save-group-button');
@@ -877,6 +906,47 @@
         }
       }
 
+      async function connectGovee() {
+        const apiKey =
+          goveeApiKeyInput.value.trim();
+
+        if (!apiKey) {
+          goveeStatus.textContent =
+            'Enter your Govee API key.';
+          return;
+        }
+
+        saveGoveeButton.disabled = true;
+
+        try {
+          const {
+            pluginConfig,
+            platform,
+          } = await getPlatformConfig();
+
+          platform.goveeApiKey =
+            apiKey;
+
+          await homebridge.updatePluginConfig(
+            pluginConfig,
+          );
+
+          await homebridge.savePluginConfig();
+
+          goveeApiKeyInput.value = '';
+
+          goveeStatus.textContent =
+            'Govee account connected.';
+
+          await discoverLights();
+        } catch (error) {
+          goveeStatus.textContent =
+            `Govee connection failed: ${error.message}`;
+        } finally {
+          saveGoveeButton.disabled = false;
+        }
+      }
+
       async function discoverLights() {
     discoverButton.disabled = true;
 
@@ -1300,6 +1370,11 @@
       connectHueButton.addEventListener(
         'click',
         connectHueBridge,
+      );
+
+      saveGoveeButton.addEventListener(
+        'click',
+        connectGovee,
       );
 
       referenceDeviceSelect.addEventListener(

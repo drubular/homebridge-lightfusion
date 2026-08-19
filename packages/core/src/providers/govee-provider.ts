@@ -1,4 +1,4 @@
-import dgram from 'node:dgram';
+import { randomUUID } from 'node:crypto';
 
 import type {
   LightDescriptor,
@@ -6,33 +6,34 @@ import type {
 } from '../light-provider.js';
 import type { LightState } from '../light-state.js';
 
-interface GoveeStatusData {
-  onOff?: number;
-  brightness?: number;
-  color?: {
-    r: number;
-    g: number;
-    b: number;
-  };
-  colorTemInKelvin?: number;
-}
-
-interface GoveeResponse {
-  msg?: {
-    cmd?: string;
-    data?: GoveeStatusData;
-  };
-}
-
 export interface GoveeDeviceConfig {
   id: string;
   name: string;
   model: string;
-  ip: string;
 }
 
 export interface GoveeProviderConfig {
+  apiKey: string;
   devices: GoveeDeviceConfig[];
+}
+
+interface GoveeCapabilityState {
+  type?: string;
+  instance?: string;
+  state?: {
+    value?: unknown;
+  };
+}
+
+interface GoveeApiResponse {
+  code?: number;
+  msg?: string;
+}
+
+interface GoveeStateResponse extends GoveeApiResponse {
+  payload?: {
+    capabilities?: GoveeCapabilityState[];
+  };
 }
 
 export class GoveeProvider implements LightProvider {
@@ -44,7 +45,7 @@ export class GoveeProvider implements LightProvider {
   >();
 
   public constructor(
-    config: GoveeProviderConfig,
+    private readonly config: GoveeProviderConfig,
   ) {
     for (const device of config.devices) {
       this.devices.set(device.id, device);
@@ -66,20 +67,54 @@ export class GoveeProvider implements LightProvider {
   ): Promise<LightState> {
     const device = this.getDevice(lightId);
 
-    const status = await this.requestStatus(
-      device,
-    );
+    const response =
+      await this.requestDeviceState(device);
+
+    const capabilities =
+      response.payload?.capabilities ?? [];
+
+    const valueFor = (
+      instance: string,
+    ): unknown =>
+      capabilities.find(
+        (capability) =>
+          capability.instance === instance,
+      )?.state?.value;
+
+    const power =
+      valueFor('powerSwitch');
+
+    const brightness =
+      valueFor('brightness');
+
+    const rgb =
+      valueFor('colorRgb');
+
+    const kelvin =
+      valueFor('colorTemperatureK');
+
+    const color =
+      typeof rgb === 'number'
+        ? this.rgbIntegerToHsv(rgb)
+        : undefined;
 
     return {
-      on: status.onOff === 1,
+      on:
+        power === 1 ||
+        power === 'on' ||
+        power === true,
       brightness:
-        status.brightness ?? 100,
-      hue: 0,
-      saturation: 0,
+        typeof brightness === 'number'
+          ? brightness
+          : 100,
+      hue:
+        color?.hue ?? 0,
+      saturation:
+        color?.saturation ?? 0,
       colorTemperature:
-        this.kelvinToMired(
-          status.colorTemInKelvin,
-        ) ?? 370,
+        typeof kelvin === 'number'
+          ? this.kelvinToMired(kelvin)
+          : 370,
     };
   }
 
@@ -90,24 +125,20 @@ export class GoveeProvider implements LightProvider {
     const device = this.getDevice(lightId);
 
     if (state.on === true) {
-      await this.sendCommand(
+      await this.sendCapability(
         device,
-        'turn',
-        {
-          value: 1,
-        },
+        'devices.capabilities.on_off',
+        'powerSwitch',
+        1,
       );
     }
 
     if (state.brightness !== undefined) {
-      await this.sendCommand(
+      await this.sendCapability(
         device,
+        'devices.capabilities.range',
         'brightness',
-        {
-          value: Math.round(
-            state.brightness,
-          ),
-        },
+        Math.round(state.brightness),
       );
     }
 
@@ -118,48 +149,39 @@ export class GoveeProvider implements LightProvider {
         state.saturation !== undefined
       )
     ) {
-      const rgb = this.hsvToRgb(
-        state.hue ?? 0,
-        state.saturation ?? 0,
-      );
+      const rgb =
+        this.hsvToRgbInteger(
+          state.hue ?? 0,
+          state.saturation ?? 0,
+        );
 
-      await this.sendCommand(
+      await this.sendCapability(
         device,
-        'colorwc',
-        {
-          color: rgb,
-          colorTemInKelvin: 0,
-        },
+        'devices.capabilities.color_setting',
+        'colorRgb',
+        rgb,
       );
     }
 
     if (
       state.colorTemperature !== undefined
     ) {
-      await this.sendCommand(
+      await this.sendCapability(
         device,
-        'colorwc',
-        {
-          color: {
-            r: 0,
-            g: 0,
-            b: 0,
-          },
-          colorTemInKelvin:
-            this.miredToKelvin(
-              state.colorTemperature,
-            ),
-        },
+        'devices.capabilities.color_setting',
+        'colorTemperatureK',
+        this.miredToKelvin(
+          state.colorTemperature,
+        ),
       );
     }
 
     if (state.on === false) {
-      await this.sendCommand(
+      await this.sendCapability(
         device,
-        'turn',
-        {
-          value: 0,
-        },
+        'devices.capabilities.on_off',
+        'powerSwitch',
+        0,
       );
     }
   }
@@ -170,139 +192,114 @@ export class GoveeProvider implements LightProvider {
     const device = this.getDevice(lightId);
 
     try {
-      await this.requestStatus(device);
-      return true;
+      const response =
+        await this.requestDeviceState(device);
+
+      const online =
+        response.payload?.capabilities?.find(
+          (capability) =>
+            capability.type ===
+              'devices.capabilities.online',
+        )?.state?.value;
+
+      return online !== false;
     } catch {
       return false;
     }
   }
 
-  private async requestStatus(
+  private async requestDeviceState(
     device: GoveeDeviceConfig,
-  ): Promise<GoveeStatusData> {
-    const response = await this.sendRequest(
-      device,
-      'devStatus',
-      {},
-      true,
-    );
-
-    return response.msg?.data ?? {};
-  }
-
-  private async sendCommand(
-    device: GoveeDeviceConfig,
-    cmd: string,
-    data: Record<string, unknown>,
-  ): Promise<void> {
-    await this.sendRequest(
-      device,
-      cmd,
-      data,
-      false,
-    );
-
-    await this.wait(150);
-  }
-
-  private async sendRequest(
-    device: GoveeDeviceConfig,
-    cmd: string,
-    data: Record<string, unknown>,
-    waitForResponse: boolean,
-  ): Promise<GoveeResponse> {
-    return await new Promise(
-      (resolve, reject) => {
-        const socket = dgram.createSocket({
-          type: 'udp4',
-          reuseAddr: true,
-        });
-
-        const timeout = setTimeout(
-          () => {
-            socket.close();
-
-            if (waitForResponse) {
-              reject(
-                new Error(
-                  `Govee request timed out: ${cmd}`,
-                ),
-              );
-            } else {
-              resolve({});
-            }
+  ): Promise<GoveeStateResponse> {
+    const response = await fetch(
+      'https://openapi.api.govee.com/router/api/v1/device/state',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+          'Govee-API-Key':
+            this.config.apiKey,
+        },
+        body: JSON.stringify({
+          requestId: randomUUID(),
+          payload: {
+            sku: device.model,
+            device: device.id,
           },
-          1500,
-        );
-
-        socket.on('error', (error) => {
-          clearTimeout(timeout);
-          socket.close();
-          reject(error);
-        });
-
-        if (waitForResponse) {
-          socket.on(
-            'message',
-            (message) => {
-              clearTimeout(timeout);
-              socket.close();
-
-              try {
-                resolve(
-                  JSON.parse(
-                    message.toString(),
-                  ) as GoveeResponse,
-                );
-              } catch (error) {
-                reject(error);
-              }
-            },
-          );
-        }
-
-        const send = (): void => {
-          const payload = Buffer.from(
-            JSON.stringify({
-              msg: {
-                cmd,
-                data,
-              },
-            }),
-          );
-
-          socket.send(
-            payload,
-            4003,
-            device.ip,
-            (error) => {
-              if (error) {
-                clearTimeout(timeout);
-                socket.close();
-                reject(error);
-                return;
-              }
-
-              if (!waitForResponse) {
-                clearTimeout(timeout);
-                socket.close();
-                resolve({});
-              }
-            },
-          );
-        };
-
-        if (waitForResponse) {
-          socket.bind(
-            4002,
-            '0.0.0.0',
-            send,
-          );
-        } else {
-          send();
-        }
+        }),
       },
     );
+
+    if (!response.ok) {
+      throw new Error(
+        `Govee state request failed with HTTP ${response.status}`,
+      );
+    }
+
+    const result =
+      await response.json() as GoveeStateResponse;
+
+    if (
+      result.code !== undefined &&
+      result.code !== 200
+    ) {
+      throw new Error(
+        `Govee state request failed: ${result.msg ?? `code ${result.code}`}`,
+      );
+    }
+
+    return result;
+  }
+
+  private async sendCapability(
+    device: GoveeDeviceConfig,
+    type: string,
+    instance: string,
+    value: unknown,
+  ): Promise<void> {
+    const response = await fetch(
+      'https://openapi.api.govee.com/router/api/v1/device/control',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type':
+            'application/json',
+          'Govee-API-Key':
+            this.config.apiKey,
+        },
+        body: JSON.stringify({
+          requestId: randomUUID(),
+          payload: {
+            sku: device.model,
+            device: device.id,
+            capability: {
+              type,
+              instance,
+              value,
+            },
+          },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Govee control request failed with HTTP ${response.status}`,
+      );
+    }
+
+    const result =
+      await response.json() as GoveeApiResponse;
+
+    if (
+      result.code !== undefined &&
+      result.code !== 200
+    ) {
+      throw new Error(
+        `Govee control request failed: ${result.msg ?? `code ${result.code}`}`,
+      );
+    }
   }
 
   private getDevice(
@@ -321,14 +318,6 @@ export class GoveeProvider implements LightProvider {
     return device;
   }
 
-  private async wait(
-    milliseconds: number,
-  ): Promise<void> {
-    await new Promise((resolve) => {
-      setTimeout(resolve, milliseconds);
-    });
-  }
-
   private miredToKelvin(
     mired: number,
   ): number {
@@ -338,25 +327,17 @@ export class GoveeProvider implements LightProvider {
   }
 
   private kelvinToMired(
-    kelvin?: number,
-  ): number | undefined {
-    if (!kelvin) {
-      return undefined;
-    }
-
+    kelvin: number,
+  ): number {
     return Math.round(
       1_000_000 / kelvin,
     );
   }
 
-  private hsvToRgb(
+  private hsvToRgbInteger(
     hue: number,
     saturation: number,
-  ): {
-    r: number;
-    g: number;
-    b: number;
-  } {
+  ): number {
     const normalizedHue =
       ((hue % 360) + 360) % 360;
 
@@ -366,10 +347,8 @@ export class GoveeProvider implements LightProvider {
         Math.min(100, saturation),
       ) / 100;
 
-    const value = 1;
-
     const chroma =
-      value * normalizedSaturation;
+      normalizedSaturation;
 
     const hueSection =
       normalizedHue / 60;
@@ -407,18 +386,81 @@ export class GoveeProvider implements LightProvider {
       blue = x;
     }
 
-    const match = value - chroma;
+    const match = 1 - chroma;
+
+    const r = Math.round(
+      (red + match) * 255,
+    );
+
+    const g = Math.round(
+      (green + match) * 255,
+    );
+
+    const b = Math.round(
+      (blue + match) * 255,
+    );
+
+    return (
+      (r << 16) |
+      (g << 8) |
+      b
+    );
+  }
+
+  private rgbIntegerToHsv(
+    rgb: number,
+  ): {
+    hue: number;
+    saturation: number;
+  } {
+    const r =
+      ((rgb >> 16) & 0xff) / 255;
+
+    const g =
+      ((rgb >> 8) & 0xff) / 255;
+
+    const b =
+      (rgb & 0xff) / 255;
+
+    const max =
+      Math.max(r, g, b);
+
+    const min =
+      Math.min(r, g, b);
+
+    const delta =
+      max - min;
+
+    let hue = 0;
+
+    if (delta !== 0) {
+      if (max === r) {
+        hue =
+          60 *
+          (((g - b) / delta) % 6);
+      } else if (max === g) {
+        hue =
+          60 *
+          ((b - r) / delta + 2);
+      } else {
+        hue =
+          60 *
+          ((r - g) / delta + 4);
+      }
+    }
+
+    if (hue < 0) {
+      hue += 360;
+    }
+
+    const saturation =
+      max === 0
+        ? 0
+        : (delta / max) * 100;
 
     return {
-      r: Math.round(
-        (red + match) * 255,
-      ),
-      g: Math.round(
-        (green + match) * 255,
-      ),
-      b: Math.round(
-        (blue + match) * 255,
-      ),
+      hue,
+      saturation,
     };
   }
 }

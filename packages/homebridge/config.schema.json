@@ -21,6 +21,10 @@
         "title": "Hue Application Key",
         "type": "string"
       },
+      "goveeApiKey": {
+        "title": "Govee API Key",
+        "type": "string"
+      },
       "groups": {
         "title": "Light Groups",
         "type": "array",
@@ -108,7 +112,6 @@
                 }
               }
             },
-
             "hueLightIds": {
               "title": "Legacy Hue Light IDs",
               "type": "array",

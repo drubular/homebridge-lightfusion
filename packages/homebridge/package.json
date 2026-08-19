@@ -1,7 +1,7 @@
 {
   "name": "homebridge-lightfusion",
   "displayName": "LightFusion",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "private": false,
   "description": "Homebridge interface for synchronized and calibrated mixed-brand lighting",
   "author": "drubular",
@@ -45,7 +45,7 @@
   },
   "dependencies": {
     "@homebridge/plugin-ui-utils": "^2.2.5",
-    "lightfusion-core": "0.1.1"
+    "lightfusion-core": "0.1.2"
   },
   "devDependencies": {
     "homebridge": "^2.3.0"

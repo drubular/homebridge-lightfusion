@@ -59,7 +59,7 @@ interface LightFusionGoveeConfig {
   id: string;
   name?: string;
   model?: string;
-  ip: string;
+  ip?: string;
   calibrationProfile?: string;
   hueOffset?: number;
   saturationScale?: number;
@@ -89,6 +89,7 @@ interface LightFusionGroupConfig {
 interface LightFusionPlatformConfig extends PlatformConfig {
   hueBridgeIp?: string;
   hueApplicationKey?: string;
+  goveeApiKey?: string;
 
   groups?: LightFusionGroupConfig[];
 
@@ -206,8 +207,7 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
               return group.members
                 .filter(
                   (member) =>
-                    member.providerId === 'govee' &&
-                    member.ip !== undefined,
+                    member.providerId === 'govee',
                 )
                 .map(
                   (member): LightFusionGoveeConfig => ({
@@ -218,7 +218,6 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
                     ...(member.model
                       ? { model: member.model }
                       : {}),
-                    ip: member.ip as string,
                   }),
                 );
             }
@@ -228,8 +227,7 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
               : [];
           },
         )
-        : this.config.goveeIp &&
-          this.config.goveeLightId
+        : this.config.goveeLightId
           ? [
             {
               id: this.config.goveeLightId,
@@ -239,32 +237,55 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
               ...(this.config.goveeModel
                 ? { model: this.config.goveeModel }
                 : {}),
-              ip: this.config.goveeIp,
             },
           ]
           : [];
 
-    for (const govee of configuredGoveeLights) {
+    const uniqueGoveeLights =
+      [
+        ...new Map(
+          configuredGoveeLights.map(
+            (device) => [
+              device.id,
+              device,
+            ],
+          ),
+        ).values(),
+      ];
+
+    if (
+      this.config.goveeApiKey &&
+      uniqueGoveeLights.length > 0
+    ) {
       this.registry.register(
         new GoveeProvider({
-          devices: [
-            {
-              id: govee.id,
-              name: govee.name ?? 'Govee Light',
-              model: govee.model ?? 'unknown',
-              ip: govee.ip,
-            },
-          ],
+          apiKey: this.config.goveeApiKey,
+          devices:
+            uniqueGoveeLights.map(
+              (govee) => ({
+                id: govee.id,
+                name:
+                  govee.name ??
+                  'Govee Light',
+                model:
+                  govee.model ??
+                  'unknown',
+              }),
+            ),
         }),
       );
 
       this.logger.info(
-        `Govee provider registered: ${govee.name ?? govee.id}`,
+        `Govee provider registered with ${uniqueGoveeLights.length} device(s)`,
       );
-    }
-
-    if (configuredGoveeLights.length === 0) {
-      this.logger.warn('Govee provider not configured');
+    } else if (!this.config.goveeApiKey) {
+      this.logger.warn(
+        'Govee API key not configured',
+      );
+    } else {
+      this.logger.warn(
+        'No Govee lights configured',
+      );
     }
   }
 
