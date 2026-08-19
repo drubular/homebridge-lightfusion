@@ -82,15 +82,13 @@
       color: #fff;
       border: none;
       background:
-        linear-gradient(
-          90deg,
+        linear-gradient(90deg,
           #ff4d4d,
           #ff9f1c,
           #ffd60a,
           #2ec4b6,
           #3a86ff,
-          #8338ec
-        );
+          #8338ec);
       text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
     }
 
@@ -150,16 +148,96 @@
     .hidden {
       display: none;
     }
+
+    #connect-hue-button,
+    #reconnect-hue-button,
+    #start-govee-button,
+    #save-govee-button,
+    #change-govee-button {
+      background: #fff;
+      color: #222;
+      border: 1px solid #d9d9d9;
+      position: relative;
+      overflow: hidden;
+      padding-left: 26px;
+      padding-right: 26px;
+    }
+
+    #connect-hue-button::before,
+    #reconnect-hue-button::before,
+    #connect-hue-button::after,
+    #reconnect-hue-button::after,
+    #start-govee-button::before,
+    #save-govee-button::before,
+    #change-govee-button::before,
+    #start-govee-button::after,
+    #save-govee-button::after,
+    #change-govee-button::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 10px;
+    }
+
+    #connect-hue-button::before,
+    #reconnect-hue-button::before,
+    #start-govee-button::before,
+    #save-govee-button::before,
+    #change-govee-button::before {
+      left: 0;
+    }
+
+    #connect-hue-button::after,
+    #reconnect-hue-button::after,
+    #start-govee-button::after,
+    #save-govee-button::after,
+    #change-govee-button::after {
+      right: 0;
+    }
+
+    /* Hue spectrum */
+    #connect-hue-button::before,
+    #reconnect-hue-button::before,
+    #connect-hue-button::after,
+    #reconnect-hue-button::after {
+      background:
+        linear-gradient(180deg,
+          #ff4d4d,
+          #ff9f1c,
+          #ffd60a,
+          #2ec4b6,
+          #3a86ff,
+          #8338ec);
+    }
+
+    /* Govee purple / blue */
+    #start-govee-button::before,
+    #save-govee-button::before,
+    #change-govee-button::before,
+    #start-govee-button::after,
+    #save-govee-button::after,
+    #change-govee-button::after {
+      background:
+        linear-gradient(180deg,
+          #7c3aed,
+          #4f46e5,
+          #2563eb);
+    }
+
+    #connect-hue-button:hover,
+    #reconnect-hue-button:hover,
+    #start-govee-button:hover,
+    #save-govee-button:hover,
+    #change-govee-button:hover {
+      background: #f7f7f7;
+    }
   </style>
 </head>
 
 <body>
   <div class="brand">
-    <img
-      src="lightfusion-logo.png"
-      alt="LightFusion"
-      class="brand-logo"
-    >
+    <img src="lightfusion-logo.png" alt="LightFusion" class="brand-logo">
     <h2>LightFusion</h2>
   </div>
 
@@ -169,59 +247,112 @@
   </p>
 
   <section class="section">
-    <div class="toolbar">
-      <button id="discover-button" type="button">
-        Refresh Devices
-      </button>
+    <h3>LightFusion Groups</h3>
 
+    <div class="toolbar">
       <button id="add-group-button" type="button">
         Add Group
       </button>
-
-      <button id="connect-hue-button" type="button">
-        Connect Hue Bridge
-      </button>
     </div>
 
-    <div style="max-width: 520px; margin-bottom: 16px;">
-      <label>
-        Govee API Key
-        <input
-          id="govee-api-key"
-          type="password"
-          placeholder="Paste your Govee API key"
-          autocomplete="off"
-        >
-      </label>
-
-      <div class="toolbar" style="margin-top: 10px;">
-        <button id="save-govee-button" type="button">
-          Connect Govee
-        </button>
-      </div>
-    </div>
-
-    <div id="status" class="status"></div>
-    <div id="hue-status" class="status muted"></div>
-    <div id="govee-status" class="status muted"></div>
-  </section>
-
-  <section class="section">
-    <h3>Available Lights</h3>
-
-    <div id="devices">
+    <div id="groups">
       <p class="muted">
-        Looking for compatible lights...
+        No groups loaded.
       </p>
     </div>
   </section>
 
   <section class="section">
-    <h3>LightFusion Groups</h3>
+    <h3>Manufacturer Connections</h3>
 
-    <div id="groups">
+    <p class="muted">
+      Connect the lighting brands you want LightFusion
+      to discover and control.
+    </p>
+
+    <div class="device">
+      <strong>Philips Hue</strong>
+
+      <p id="hue-helper" class="muted">
+        Hue Bridge required. Click Connect Hue, then press
+        the button on your Hue Bridge when prompted.
+      </p>
+
+      <div id="hue-connected-status" class="status hidden">
+        ✓ Connected
+      </div>
+
+      <div class="toolbar">
+        <button id="connect-hue-button" type="button">
+          Connect Hue
+        </button>
+
+        <button id="reconnect-hue-button" type="button" class="hidden">
+          Reconnect Hue
+        </button>
+      </div>
+
+      <div id="hue-status" class="status muted"></div>
+    </div>
+
+    <div class="device">
+      <strong>Govee</strong>
+
+      <p id="govee-helper" class="muted">
+        Govee API key required. Get one from the Govee Home
+        app, then click Connect Govee.
+      </p>
+
+      <div id="govee-connected-status" class="status hidden"></div>
+
+      <div id="govee-key-wrap" class="hidden">
+        <label>
+          <span id="govee-key-label">
+            Govee API Key
+          </span>
+
+          <input id="govee-api-key" type="password" placeholder="Paste your Govee API key" autocomplete="off">
+        </label>
+
+        <p id="govee-current-key" class="muted hidden"></p>
+      </div>
+
+      <div class="toolbar">
+        <button id="start-govee-button" type="button">
+          Connect Govee
+        </button>
+
+        <button id="save-govee-button" type="button" class="hidden">
+          Save &amp; Connect
+        </button>
+
+        <button id="cancel-govee-button" type="button" class="hidden">
+          Cancel
+        </button>
+
+        <button id="change-govee-button" type="button" class="hidden">
+          Change API Key
+        </button>
+      </div>
+
+      <div id="govee-status" class="status muted"></div>
+    </div>
+  </section>
+
+  <section class="section">
+    <h3>Available Lights</h3>
+
+    <div class="toolbar">
+      <button id="discover-button" type="button">
+        Refresh Devices
+      </button>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div id="devices">
       <p class="muted">
-        No groups loaded.
+        Looking for compatible lights...
       </p>
     </div>
   </section>
@@ -279,14 +410,47 @@
       const connectHueButton =
         document.getElementById('connect-hue-button');
 
+      const reconnectHueButton =
+        document.getElementById('reconnect-hue-button');
+
+      const hueHelper =
+        document.getElementById('hue-helper');
+
+      const hueConnectedStatus =
+        document.getElementById('hue-connected-status');
+
       const hueStatus =
         document.getElementById('hue-status');
+
+      const goveeHelper =
+        document.getElementById('govee-helper');
+
+      const goveeConnectedStatus =
+        document.getElementById('govee-connected-status');
 
       const goveeApiKeyInput =
         document.getElementById('govee-api-key');
 
+      const goveeKeyWrap =
+        document.getElementById('govee-key-wrap');
+
+      const goveeKeyLabel =
+        document.getElementById('govee-key-label');
+
+      const goveeCurrentKey =
+        document.getElementById('govee-current-key');
+
+      const startGoveeButton =
+        document.getElementById('start-govee-button');
+
       const saveGoveeButton =
         document.getElementById('save-govee-button');
+
+      const cancelGoveeButton =
+        document.getElementById('cancel-govee-button');
+
+      const changeGoveeButton =
+        document.getElementById('change-govee-button');
 
       const goveeStatus =
         document.getElementById('govee-status');
@@ -392,9 +556,9 @@
               const light = discoveredLights.find(
                 (candidate) =>
                   candidate.providerId ===
-                    member.providerId &&
+                  member.providerId &&
                   candidate.id ===
-                    member.lightId,
+                  member.lightId,
               );
 
               deviceNames.push(
@@ -844,6 +1008,208 @@
         editingGroupId = null;
       }
 
+      async function refreshConnectionStates() {
+        try {
+          const {
+            platform,
+          } = await getPlatformConfig();
+
+          if (platform.hueApplicationKey) {
+            hueHelper.classList.add(
+              'hidden',
+            );
+
+            hueConnectedStatus.classList.remove(
+              'hidden',
+            );
+
+            connectHueButton.classList.add(
+              'hidden',
+            );
+
+            reconnectHueButton.classList.remove(
+              'hidden',
+            );
+
+            hueStatus.textContent = '';
+          } else {
+            hueHelper.classList.remove(
+              'hidden',
+            );
+
+            hueConnectedStatus.classList.add(
+              'hidden',
+            );
+
+            connectHueButton.classList.remove(
+              'hidden',
+            );
+
+            connectHueButton.textContent =
+              'Connect Hue';
+
+            connectHueButton.disabled = false;
+
+            reconnectHueButton.classList.add(
+              'hidden',
+            );
+          }
+
+          const goveeKey =
+            typeof platform.goveeApiKey ===
+              'string'
+              ? platform.goveeApiKey
+              : '';
+
+          if (goveeKey) {
+            const ending =
+              goveeKey.slice(-4);
+
+            goveeHelper.classList.add(
+              'hidden',
+            );
+
+            goveeConnectedStatus.textContent =
+              `✓ Connected · API key ending ${ending}`;
+
+            goveeConnectedStatus.classList.remove(
+              'hidden',
+            );
+
+            goveeKeyWrap.classList.add(
+              'hidden',
+            );
+
+            startGoveeButton.classList.add(
+              'hidden',
+            );
+
+            saveGoveeButton.classList.add(
+              'hidden',
+            );
+
+            cancelGoveeButton.classList.add(
+              'hidden',
+            );
+
+            changeGoveeButton.classList.remove(
+              'hidden',
+            );
+
+            goveeStatus.textContent = '';
+          } else {
+            goveeHelper.classList.remove(
+              'hidden',
+            );
+
+            goveeConnectedStatus.classList.add(
+              'hidden',
+            );
+
+            goveeKeyWrap.classList.add(
+              'hidden',
+            );
+
+            startGoveeButton.classList.remove(
+              'hidden',
+            );
+
+            saveGoveeButton.classList.add(
+              'hidden',
+            );
+
+            cancelGoveeButton.classList.add(
+              'hidden',
+            );
+
+            changeGoveeButton.classList.add(
+              'hidden',
+            );
+
+            goveeApiKeyInput.value = '';
+          }
+        } catch {
+          // Connection status is best-effort UI state.
+        }
+      }
+
+      async function showGoveeSetup(
+        changingExisting = false,
+      ) {
+        const {
+          platform,
+        } = await getPlatformConfig();
+
+        const existingKey =
+          typeof platform.goveeApiKey ===
+            'string'
+            ? platform.goveeApiKey
+            : '';
+
+        goveeHelper.classList.add(
+          'hidden',
+        );
+
+        goveeConnectedStatus.classList.add(
+          'hidden',
+        );
+
+        goveeKeyWrap.classList.remove(
+          'hidden',
+        );
+
+        startGoveeButton.classList.add(
+          'hidden',
+        );
+
+        changeGoveeButton.classList.add(
+          'hidden',
+        );
+
+        saveGoveeButton.classList.remove(
+          'hidden',
+        );
+
+        cancelGoveeButton.classList.remove(
+          'hidden',
+        );
+
+        goveeApiKeyInput.value = '';
+
+        if (
+          changingExisting &&
+          existingKey
+        ) {
+          const ending =
+            existingKey.slice(-4);
+
+          goveeKeyLabel.textContent =
+            'New Govee API Key';
+
+          goveeCurrentKey.textContent =
+            `Current API key ends in ${ending}`;
+
+          goveeCurrentKey.classList.remove(
+            'hidden',
+          );
+
+          saveGoveeButton.textContent =
+            'Save New API Key';
+        } else {
+          goveeKeyLabel.textContent =
+            'Govee API Key';
+
+          goveeCurrentKey.classList.add(
+            'hidden',
+          );
+
+          saveGoveeButton.textContent =
+            'Save & Connect';
+        }
+
+        goveeApiKeyInput.focus();
+      }
+
       async function connectHueBridge() {
         connectHueButton.disabled = true;
 
@@ -860,7 +1226,7 @@
             result.needsLinkButton
           ) {
             hueStatus.textContent =
-              'Press the round button on your Hue Bridge, then click Connect Hue Bridge again.';
+              'Press the round button on your Hue Bridge, then click Connect Hue again.';
             return;
           }
 
@@ -897,6 +1263,7 @@
           hueStatus.textContent =
             'Hue Bridge connected successfully.';
 
+          await refreshConnectionStates();
           await discoverLights();
         } catch (error) {
           hueStatus.textContent =
@@ -938,6 +1305,7 @@
           goveeStatus.textContent =
             'Govee account connected.';
 
+          await refreshConnectionStates();
           await discoverLights();
         } catch (error) {
           goveeStatus.textContent =
@@ -948,421 +1316,421 @@
       }
 
       async function discoverLights() {
-    discoverButton.disabled = true;
+        discoverButton.disabled = true;
 
-    setStatus(
-      'Finding compatible lights… You can create groups as soon as your available lights are ready.',
-    );
-
-    try {
-      discoveredLights =
-        await homebridge.request(
-          '/discover',
-        );
-
-      await loadGroups();
-
-      renderDiscoveredLights();
-      renderGroups();
-
-      if (discoveredLights.length > 0) {
         setStatus(
-          `${discoveredLights.length} light(s) found. You can now create or edit groups.`,
+          'Finding compatible lights… You can create groups as soon as your available lights are ready.',
         );
-      } else {
-        setStatus(
-          'No compatible lights found. Check your device setup, then select Refresh Devices.',
-        );
-      }
-    } catch (error) {
-      setStatus(
-        `Discovery failed: ${error.message}`,
-      );
-    } finally {
-      discoverButton.disabled = false;
-    }
-  }
 
-  async function getPlatformConfig() {
-    const pluginConfig =
-      await homebridge.getPluginConfig();
+        try {
+          discoveredLights =
+            await homebridge.request(
+              '/discover',
+            );
 
-    const platform =
-      pluginConfig.find(
-        (entry) =>
-          entry.platform === 'LightFusion',
-      );
+          await loadGroups();
 
-    if (!platform) {
-      throw new Error(
-        'LightFusion platform configuration not found.',
-      );
-    }
+          renderDiscoveredLights();
+          renderGroups();
 
-    return {
-      pluginConfig,
-      platform,
-    };
-  }
-
-  async function loadGroups() {
-    try {
-      const {
-        platform,
-      } = await getPlatformConfig();
-
-      groups =
-        Array.isArray(platform.groups)
-          ? platform.groups
-          : [];
-
-      renderGroups();
-    } catch (error) {
-      setStatus(
-        `Could not load groups: ${error.message}`,
-      );
-    }
-  }
-
-  async function saveGroupsToHomebridge(
-    updatedGroups,
-  ) {
-    const {
-      pluginConfig,
-      platform,
-    } = await getPlatformConfig();
-
-    platform.groups = updatedGroups;
-
-    await homebridge.updatePluginConfig(
-      pluginConfig,
-    );
-
-    await homebridge.savePluginConfig();
-
-    groups = updatedGroups;
-  }
-
-  async function saveGroup() {
-    const name =
-      groupNameInput.value.trim();
-
-    if (!name) {
-      setStatus('Group name is required.');
-      return;
-    }
-
-    const selectedKeys = [
-      ...groupDevicesContainer
-        .querySelectorAll(
-          'input[type="checkbox"]:checked',
-        ),
-    ].map(
-      (checkbox) =>
-        checkbox.value,
-    );
-
-    if (selectedKeys.length === 0) {
-      setStatus(
-        'Select at least one light.',
-      );
-      return;
-    }
-
-    if (
-      selectedKeys.length > 1 &&
-      !referenceDeviceSelect.value
-    ) {
-      setStatus(
-        'Select a reference device for this group.',
-      );
-      return;
-    }
-
-    const calibrationInputs = [
-      ...calibrationDevicesContainer
-        .querySelectorAll(
-          '[data-calibration-device]',
-        ),
-    ];
-
-    for (const input of calibrationInputs) {
-      const value = Number(input.value);
-
-      if (
-        !Number.isFinite(value) ||
-        value < 0 ||
-        value > 100
-      ) {
-        setStatus(
-          'Brightness calibration values must be between 0 and 100.',
-        );
-        return;
-      }
-    }
-
-    const selectedLights =
-      selectedKeys
-        .map((key) => {
-          const separator =
-            key.indexOf(':');
-
-          const providerId =
-            key.slice(0, separator);
-
-          const id =
-            key.slice(separator + 1);
-
-          return discoveredLights.find(
-            (light) =>
-              light.providerId === providerId &&
-              light.id === id,
-          );
-        })
-        .filter(Boolean);
-
-    const existingGroup =
-      editingGroupId
-        ? groups.find(
-          (group) =>
-            group.id === editingGroupId,
-        )
-        : undefined;
-
-    const existingMembers =
-      Array.isArray(existingGroup?.members)
-        ? existingGroup.members
-        : [];
-
-    const legacyGoveeCalibration =
-      existingGroup?.govee
-        ? {
-          profile:
-            existingGroup.govee
-              .calibrationProfile ??
-            (
-              existingGroup.govee.model ===
-                'H60A1'
-                ? 'govee-h60a1-vs-hue'
-                : ''
-            ),
-
-          ...(existingGroup.govee
-            .hueOffset !== undefined
-            ? {
-              hueOffset:
-                existingGroup.govee
-                  .hueOffset,
-            }
-            : {}),
-
-          ...(existingGroup.govee
-            .saturationScale !== undefined
-            ? {
-              saturationScale:
-                existingGroup.govee
-                  .saturationScale,
-            }
-            : {}),
-
-          ...(existingGroup.govee
-            .brightnessScale !== undefined
-            ? {
-              brightnessScale:
-                existingGroup.govee
-                  .brightnessScale,
-            }
-            : {}),
-
-          ...(existingGroup.govee
-            .colorTemperatureOffset !== undefined
-            ? {
-              colorTemperatureOffset:
-                existingGroup.govee
-                  .colorTemperatureOffset,
-            }
-            : {}),
-        }
-        : undefined;
-
-    const members =
-      selectedLights.map((light) => {
-        const existingMember =
-          existingMembers.find(
-            (member) =>
-              member.providerId ===
-                light.providerId &&
-              member.lightId === light.id,
-          );
-
-        const key =
-          `${light.providerId}:${light.id}`;
-
-        const isReference =
-          key === referenceDeviceSelect.value;
-
-        const existingCalibration =
-          existingMember?.calibration ??
-          (
-            light.providerId === 'govee' &&
-            existingGroup?.govee?.id === light.id
-              ? legacyGoveeCalibration
-              : undefined
-          );
-
-        let calibration =
-          existingCalibration;
-
-        if (!isReference) {
-          const brightnessInputs = [
-            ...calibrationDevicesContainer
-              .querySelectorAll(
-                `[data-calibration-device="${key}"]`,
-              ),
-          ];
-
-          if (brightnessInputs.length > 0) {
-            const brightnessMap =
-              brightnessInputs.map(
-                (input) => ({
-                  input: Number(
-                    input.dataset.calibrationInput,
-                  ),
-                  output: Number(input.value),
-                }),
-              );
-
-            calibration = {
-              ...(existingCalibration ?? {}),
-              brightnessMap,
-            };
+          if (discoveredLights.length > 0) {
+            setStatus(
+              `${discoveredLights.length} light(s) found. You can now create or edit groups.`,
+            );
+          } else {
+            setStatus(
+              'No compatible lights found. Check your device setup, then select Refresh Devices.',
+            );
           }
+        } catch (error) {
+          setStatus(
+            `Discovery failed: ${error.message}`,
+          );
+        } finally {
+          discoverButton.disabled = false;
+        }
+      }
+
+      async function getPlatformConfig() {
+        const pluginConfig =
+          await homebridge.getPluginConfig();
+
+        const platform =
+          pluginConfig.find(
+            (entry) =>
+              entry.platform === 'LightFusion',
+          );
+
+        if (!platform) {
+          throw new Error(
+            'LightFusion platform configuration not found.',
+          );
         }
 
         return {
-          providerId: light.providerId,
-          lightId: light.id,
-          name: light.name,
-          ...(light.model
-            ? { model: light.model }
-            : {}),
-          ...(light.ip
-            ? { ip: light.ip }
-            : {}),
-          ...(
-            !isReference && calibration
-              ? { calibration }
-              : {}
-          ),
+          pluginConfig,
+          platform,
         };
-      });
-
-    const selectedReferenceKey =
-      referenceDeviceSelect.value;
-
-    const referenceDevice =
-      selectedReferenceKey
-        ? (() => {
-          const separator =
-            selectedReferenceKey.indexOf(':');
-
-          return {
-            providerId:
-              selectedReferenceKey.slice(
-                0,
-                separator,
-              ),
-            lightId:
-              selectedReferenceKey.slice(
-                separator + 1,
-              ),
-          };
-        })()
-        : undefined;
-
-    const group = {
-      id:
-        existingGroup?.id ??
-        createGroupId(name),
-      name,
-      members,
-      ...(referenceDevice
-        ? { referenceDevice }
-        : {}),
-    };
-
-    try {
-      const {
-        platform,
-      } = await getPlatformConfig();
-
-      const latestGroups =
-        Array.isArray(platform.groups)
-          ? [...platform.groups]
-          : [];
-
-      const existingIndex =
-        latestGroups.findIndex(
-          (candidate) =>
-            candidate.id === group.id,
-        );
-
-      if (existingIndex >= 0) {
-        latestGroups[existingIndex] =
-          group;
-      } else {
-        latestGroups.push(group);
       }
 
-      await saveGroupsToHomebridge(
-        latestGroups,
-      );
+      async function loadGroups() {
+        try {
+          const {
+            platform,
+          } = await getPlatformConfig();
 
-      renderGroups();
-      closeEditor();
+          groups =
+            Array.isArray(platform.groups)
+              ? platform.groups
+              : [];
 
-      setStatus(
-        `Saved group: ${name}`,
-      );
-    } catch (error) {
-      setStatus(
-        `Could not save group: ${error.message}`,
-      );
-    }
-  }
+          renderGroups();
+        } catch (error) {
+          setStatus(
+            `Could not load groups: ${error.message}`,
+          );
+        }
+      }
 
-  async function deleteGroup(groupId) {
-    try {
-      const {
-        platform,
-      } = await getPlatformConfig();
+      async function saveGroupsToHomebridge(
+        updatedGroups,
+      ) {
+        const {
+          pluginConfig,
+          platform,
+        } = await getPlatformConfig();
 
-      const latestGroups =
-        Array.isArray(platform.groups)
-          ? platform.groups
-          : [];
+        platform.groups = updatedGroups;
 
-      const updatedGroups =
-        latestGroups.filter(
-          (group) =>
-            group.id !== groupId,
+        await homebridge.updatePluginConfig(
+          pluginConfig,
         );
 
-      await saveGroupsToHomebridge(
-        updatedGroups,
-      );
+        await homebridge.savePluginConfig();
 
-      renderGroups();
+        groups = updatedGroups;
+      }
 
-      setStatus('Group deleted.');
-    } catch (error) {
-      setStatus(
-        `Could not delete group: ${error.message}`,
-      );
-    }
-  }
+      async function saveGroup() {
+        const name =
+          groupNameInput.value.trim();
 
-  discoverButton.addEventListener(
+        if (!name) {
+          setStatus('Group name is required.');
+          return;
+        }
+
+        const selectedKeys = [
+          ...groupDevicesContainer
+            .querySelectorAll(
+              'input[type="checkbox"]:checked',
+            ),
+        ].map(
+          (checkbox) =>
+            checkbox.value,
+        );
+
+        if (selectedKeys.length === 0) {
+          setStatus(
+            'Select at least one light.',
+          );
+          return;
+        }
+
+        if (
+          selectedKeys.length > 1 &&
+          !referenceDeviceSelect.value
+        ) {
+          setStatus(
+            'Select a reference device for this group.',
+          );
+          return;
+        }
+
+        const calibrationInputs = [
+          ...calibrationDevicesContainer
+            .querySelectorAll(
+              '[data-calibration-device]',
+            ),
+        ];
+
+        for (const input of calibrationInputs) {
+          const value = Number(input.value);
+
+          if (
+            !Number.isFinite(value) ||
+            value < 0 ||
+            value > 100
+          ) {
+            setStatus(
+              'Brightness calibration values must be between 0 and 100.',
+            );
+            return;
+          }
+        }
+
+        const selectedLights =
+          selectedKeys
+            .map((key) => {
+              const separator =
+                key.indexOf(':');
+
+              const providerId =
+                key.slice(0, separator);
+
+              const id =
+                key.slice(separator + 1);
+
+              return discoveredLights.find(
+                (light) =>
+                  light.providerId === providerId &&
+                  light.id === id,
+              );
+            })
+            .filter(Boolean);
+
+        const existingGroup =
+          editingGroupId
+            ? groups.find(
+              (group) =>
+                group.id === editingGroupId,
+            )
+            : undefined;
+
+        const existingMembers =
+          Array.isArray(existingGroup?.members)
+            ? existingGroup.members
+            : [];
+
+        const legacyGoveeCalibration =
+          existingGroup?.govee
+            ? {
+              profile:
+                existingGroup.govee
+                  .calibrationProfile ??
+                (
+                  existingGroup.govee.model ===
+                    'H60A1'
+                    ? 'govee-h60a1-vs-hue'
+                    : ''
+                ),
+
+              ...(existingGroup.govee
+                .hueOffset !== undefined
+                ? {
+                  hueOffset:
+                    existingGroup.govee
+                      .hueOffset,
+                }
+                : {}),
+
+              ...(existingGroup.govee
+                .saturationScale !== undefined
+                ? {
+                  saturationScale:
+                    existingGroup.govee
+                      .saturationScale,
+                }
+                : {}),
+
+              ...(existingGroup.govee
+                .brightnessScale !== undefined
+                ? {
+                  brightnessScale:
+                    existingGroup.govee
+                      .brightnessScale,
+                }
+                : {}),
+
+              ...(existingGroup.govee
+                .colorTemperatureOffset !== undefined
+                ? {
+                  colorTemperatureOffset:
+                    existingGroup.govee
+                      .colorTemperatureOffset,
+                }
+                : {}),
+            }
+            : undefined;
+
+        const members =
+          selectedLights.map((light) => {
+            const existingMember =
+              existingMembers.find(
+                (member) =>
+                  member.providerId ===
+                  light.providerId &&
+                  member.lightId === light.id,
+              );
+
+            const key =
+              `${light.providerId}:${light.id}`;
+
+            const isReference =
+              key === referenceDeviceSelect.value;
+
+            const existingCalibration =
+              existingMember?.calibration ??
+              (
+                light.providerId === 'govee' &&
+                  existingGroup?.govee?.id === light.id
+                  ? legacyGoveeCalibration
+                  : undefined
+              );
+
+            let calibration =
+              existingCalibration;
+
+            if (!isReference) {
+              const brightnessInputs = [
+                ...calibrationDevicesContainer
+                  .querySelectorAll(
+                    `[data-calibration-device="${key}"]`,
+                  ),
+              ];
+
+              if (brightnessInputs.length > 0) {
+                const brightnessMap =
+                  brightnessInputs.map(
+                    (input) => ({
+                      input: Number(
+                        input.dataset.calibrationInput,
+                      ),
+                      output: Number(input.value),
+                    }),
+                  );
+
+                calibration = {
+                  ...(existingCalibration ?? {}),
+                  brightnessMap,
+                };
+              }
+            }
+
+            return {
+              providerId: light.providerId,
+              lightId: light.id,
+              name: light.name,
+              ...(light.model
+                ? { model: light.model }
+                : {}),
+              ...(light.ip
+                ? { ip: light.ip }
+                : {}),
+              ...(
+                !isReference && calibration
+                  ? { calibration }
+                  : {}
+              ),
+            };
+          });
+
+        const selectedReferenceKey =
+          referenceDeviceSelect.value;
+
+        const referenceDevice =
+          selectedReferenceKey
+            ? (() => {
+              const separator =
+                selectedReferenceKey.indexOf(':');
+
+              return {
+                providerId:
+                  selectedReferenceKey.slice(
+                    0,
+                    separator,
+                  ),
+                lightId:
+                  selectedReferenceKey.slice(
+                    separator + 1,
+                  ),
+              };
+            })()
+            : undefined;
+
+        const group = {
+          id:
+            existingGroup?.id ??
+            createGroupId(name),
+          name,
+          members,
+          ...(referenceDevice
+            ? { referenceDevice }
+            : {}),
+        };
+
+        try {
+          const {
+            platform,
+          } = await getPlatformConfig();
+
+          const latestGroups =
+            Array.isArray(platform.groups)
+              ? [...platform.groups]
+              : [];
+
+          const existingIndex =
+            latestGroups.findIndex(
+              (candidate) =>
+                candidate.id === group.id,
+            );
+
+          if (existingIndex >= 0) {
+            latestGroups[existingIndex] =
+              group;
+          } else {
+            latestGroups.push(group);
+          }
+
+          await saveGroupsToHomebridge(
+            latestGroups,
+          );
+
+          renderGroups();
+          closeEditor();
+
+          setStatus(
+            `Saved group: ${name}`,
+          );
+        } catch (error) {
+          setStatus(
+            `Could not save group: ${error.message}`,
+          );
+        }
+      }
+
+      async function deleteGroup(groupId) {
+        try {
+          const {
+            platform,
+          } = await getPlatformConfig();
+
+          const latestGroups =
+            Array.isArray(platform.groups)
+              ? platform.groups
+              : [];
+
+          const updatedGroups =
+            latestGroups.filter(
+              (group) =>
+                group.id !== groupId,
+            );
+
+          await saveGroupsToHomebridge(
+            updatedGroups,
+          );
+
+          renderGroups();
+
+          setStatus('Group deleted.');
+        } catch (error) {
+          setStatus(
+            `Could not delete group: ${error.message}`,
+          );
+        }
+      }
+
+      discoverButton.addEventListener(
         'click',
         discoverLights,
       );
@@ -1372,9 +1740,36 @@
         connectHueBridge,
       );
 
+      reconnectHueButton.addEventListener(
+        'click',
+        connectHueBridge,
+      );
+
+      startGoveeButton.addEventListener(
+        'click',
+        () => {
+          void showGoveeSetup(false);
+        },
+      );
+
       saveGoveeButton.addEventListener(
         'click',
         connectGovee,
+      );
+
+      cancelGoveeButton.addEventListener(
+        'click',
+        () => {
+          goveeStatus.textContent = '';
+          void refreshConnectionStates();
+        },
+      );
+
+      changeGoveeButton.addEventListener(
+        'click',
+        () => {
+          void showGoveeSetup(true);
+        },
       );
 
       referenceDeviceSelect.addEventListener(
@@ -1403,6 +1798,7 @@
         addGroupButton.disabled = true;
 
         await loadGroups();
+        await refreshConnectionStates();
         await discoverLights();
 
         addGroupButton.disabled = false;

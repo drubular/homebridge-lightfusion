@@ -1,7 +1,7 @@
 {
   "name": "homebridge-lightfusion",
   "displayName": "LightFusion",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "private": false,
   "description": "Homebridge interface for synchronized and calibrated mixed-brand lighting",
   "author": "drubular",
