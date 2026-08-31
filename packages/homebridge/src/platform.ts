@@ -2,6 +2,7 @@ import {
   GOVEE_H60A1_VS_HUE_PROFILE,
   GoveeProvider,
   HueProvider,
+  discoverHueBridges,
   ProviderRegistry,
   SyncEngine,
   createLightGroup,
@@ -87,6 +88,7 @@ interface LightFusionGroupConfig {
 }
 
 interface LightFusionPlatformConfig extends PlatformConfig {
+  hueBridgeId?: string;
   hueBridgeIp?: string;
   hueApplicationKey?: string;
   goveeApiKey?: string;
@@ -130,8 +132,6 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
   ) {
     this.logger = new LightFusionLogger(log);
 
-    this.configureProviders();
-
     const configuredGroups: LightFusionGroupConfig[] =
       this.config.groups && this.config.groups.length > 0
         ? this.config.groups
@@ -169,13 +169,70 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
     this.logger.info('Platform initialized');
 
     this.api.on('didFinishLaunching', () => {
-      this.discoverVirtualLights();
-      void this.discoverAvailableLights();
+      void this.initializePlatform();
     });
   }
 
   public configureAccessory(accessory: PlatformAccessory): void {
     this.cachedAccessories.push(accessory);
+  }
+
+  private async initializePlatform(): Promise<void> {
+    await this.refreshHueBridgeIp();
+
+    this.configureProviders();
+    this.discoverVirtualLights();
+
+    await this.discoverAvailableLights();
+  }
+
+  private async refreshHueBridgeIp(): Promise<void> {
+    if (!this.config.hueBridgeId) {
+      return;
+    }
+
+    try {
+      const bridges =
+        await discoverHueBridges();
+
+      const bridge = bridges.find(
+        (candidate) =>
+          candidate.id.toLowerCase() ===
+          this.config.hueBridgeId?.toLowerCase(),
+      );
+
+      if (!bridge) {
+        this.logger.warn(
+          'Saved Hue Bridge was not found during startup discovery; using the saved IP address',
+        );
+        return;
+      }
+
+      if (
+        this.config.hueBridgeIp !==
+        bridge.ip
+      ) {
+        const previousIp =
+          this.config.hueBridgeIp ??
+          'unknown';
+
+        this.logger.info(
+          `Hue Bridge IP changed from ${previousIp} to ${bridge.ip}; using the discovered address`,
+        );
+      }
+
+      this.config.hueBridgeIp =
+        bridge.ip;
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : String(error);
+
+      this.logger.warn(
+        `Hue Bridge discovery failed during startup: ${message}; using the saved IP address`,
+      );
+    }
   }
 
   private configureProviders(): void {
@@ -514,6 +571,12 @@ export class LightFusionPlatform implements DynamicPlatformPlugin {
       this.logger.warn(
         `Sync completed with ${result.failed.length} failure(s)`,
       );
+
+      for (const failure of result.failed) {
+        this.logger.warn(
+          `Sync failure: ${failure.light.providerId}:${failure.light.lightId} - ${failure.error.message}`,
+        );
+      }
     }
   }
 
